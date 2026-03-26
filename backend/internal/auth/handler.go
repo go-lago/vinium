@@ -161,8 +161,7 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.setRefreshCookie(w, result.RefreshToken)
-	// Редиректим на фронт с access token в query (фронт сразу сохранит в память и уберёт из URL)
-	http.Redirect(w, r, h.frontendURL+"/?token="+result.AccessToken, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, h.frontendURL+"/auth/callback?token="+result.AccessToken, http.StatusTemporaryRedirect)
 }
 
 func (h *Handler) setRefreshCookie(w http.ResponseWriter, token string) {
