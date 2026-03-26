@@ -1,0 +1,13 @@
+# Backend
+backend/.env
+backend/vinium
+backend/tmp/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# OS
+.DS_Store
