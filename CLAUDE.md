@@ -25,6 +25,12 @@ Vinium — персональное веб-приложение для рабо�
 - **React + Vite + TypeScript**
 - **Tailwind CSS**
 - **Shadcn/ui** — компоненты
+- **Lexical** — Rich Text Editor (Facebook, extensible)
+
+### AI
+- **OpenRouter** — API-прокси для LLM (используется для всех AI-фич: summary, ассистент встреч, дайджест)
+- Приоритет: бесплатные/дешёвые модели через OpenRouter (Mistral, Gemma, Llama и др.)
+- Для локальных задач без сети — лёгкие библиотеки не требовательные к ресурсам сервера
 
 ### Структура монорепо
 ```
@@ -152,42 +158,47 @@ frontend/
 
 ## Фазы разработки
 
-### ✅ Фаза 1 — Фундамент (текущая)
+### ✅ Фаза 1 — Фундамент
 Цель: рабочее веб-приложение с аутентификацией.
 
-- [ ] Инициализация проекта (backend + frontend)
-- [ ] Docker Compose (PostgreSQL)
-- [ ] Конфиг и подключение к БД
-- [ ] User модель + миграция
-- [ ] Email/Password auth (register, login, logout, refresh)
-- [ ] Google OAuth
-- [ ] Auth middleware (проверка JWT)
-- [ ] Эндпоинт `/me`
-- [ ] React приложение с роутингом
-- [ ] Страницы Login / Register
-- [ ] Dashboard для авторизованных пользователей
-- [ ] Axios клиент с auto-refresh
-- [ ] Деплой (Railway / Fly.io + Vercel)
+- [x] Инициализация проекта (backend + frontend)
+- [x] Docker Compose (PostgreSQL)
+- [x] Конфиг и подключение к БД
+- [x] User модель + миграция
+- [x] Email/Password auth (register, login, logout, refresh)
+- [x] Google OAuth
+- [x] Auth middleware (проверка JWT)
+- [x] Эндпоинт `/me`
+- [x] React приложение с роутингом
+- [x] Страницы Login / Register
+- [x] Dashboard для авторизованных пользователей
+- [x] Axios клиент с auto-refresh
 
-### 🔜 Фаза 2 — Заметки и ассистент встреч
-- Markdown-редактор (CodeMirror или ProseMirror)
-- CRUD заметок
-- Голос → заметка
-- Ассистент встречи: транскрипт → summary + задачи 
+### 🔜 Фаза 2 — Заметки
+- Note модель + CRUD API (backend)
+- Rich Text редактор на базе **Lexical** (frontend)
+- `/notes` — отдельная страница со списком всех заметок (поиск, сортировка)
+- `/notes/:id` — страница редактирования заметки
+- Автосохранение (debounce 1–2 сек)
 
-### 🔜 Фаза 3 — Дайджест новостей
+### 🔜 Фаза 3 — AI-фичи для заметок
+- Голос → заметка (Web Speech API / Whisper через OpenRouter)
+- Ассистент встречи: транскрипт → summary + задачи (OpenRouter LLM)
+- AI-улучшение текста: rephrase, summarize, expand (OpenRouter)
+
+### 🔜 Фаза 4 — Дайджест новостей
 - Настройка тем и источников (RSS, GitHub releases, Hacker News)
 - Фоновый воркер (cron) для сбора контента
-- Claude API для фильтрации и резюмирования
+- OpenRouter LLM для фильтрации и резюмирования
 - Ежедневный дайджест как заметка в workspace
 
-### 🔜 Фаза 4 — AI поверх данных
-- Семантический поиск по заметкам (embeddings)
-- Chat с контекстом пользователя
+### 🔜 Фаза 5 — AI поверх данных
+- Семантический поиск по заметкам (embeddings, лёгкая локальная модель)
+- Chat с контекстом пользователя (OpenRouter)
 - Проактивные подсказки и связи между заметками
-- Weekly review — автоматическое summary недели
+- Weekly review — автоматическое summary недели (OpenRouter)
 
-### 🔜 Фаза 5 — Открытая платформа
+### 🔜 Фаза 6 — Открытая платформа
 - Public API (REST)
 - MCP-сервер — подключение к Claude, Cursor и другим AI-клиентам
 - Интеграции: Google Calendar, GitHub, Telegram
@@ -207,6 +218,9 @@ JWT_REFRESH_TTL=168h
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URL=http://localhost:8080/api/v1/auth/google/callback
+
+OPENROUTER_API_KEY=        # для AI-фич (фаза 3+)
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 FRONTEND_URL=http://localhost:5173
 PORT=8080
@@ -229,6 +243,12 @@ PORT=8080
 - Все API-вызовы только через `/src/api/` — не fetch напрямую в компонентах
 - Access token не хранить в localStorage/sessionStorage
 - Shadcn компоненты не модифицировать напрямую — оборачивать
+- Lexical: кастомные ноды и плагины — в `src/editor/`, не встраивать логику редактора в страницы
+
+### AI (OpenRouter)
+- Все вызовы к OpenRouter — только через backend (`/api/v1/ai/...`), ключ не светить на фронте
+- Выбор модели: дефолт — бесплатная/дешёвая (Mistral, Gemma, Llama), переопределяемая через конфиг
+- Таймаут на AI-запросы: 30 сек, при превышении — graceful ошибка пользователю
 
 ### Git
 - Ветки: `feat/название`, `fix/название`
