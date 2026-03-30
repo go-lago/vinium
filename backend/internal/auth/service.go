@@ -132,7 +132,7 @@ func (s *Service) LoginOrCreateGoogleUser(googleID, email, name, avatarURL strin
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			u = &user.User{}
 		}
-		u.GoogleID = googleID
+		u.GoogleID = &googleID
 		u.Email = email
 		u.Name = name
 		u.AvatarURL = avatarURL

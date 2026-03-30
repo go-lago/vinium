@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 
 const navItems = [
   { label: 'Dashboard', to: '/' },
+  { label: 'Заметки', to: '/notes' },
 ]
 
 export function Sidebar() {

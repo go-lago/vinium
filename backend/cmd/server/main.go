@@ -8,6 +8,7 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/nkrus/vinium/internal/auth"
+	"github.com/nkrus/vinium/internal/note"
 	"github.com/nkrus/vinium/internal/user"
 	"github.com/nkrus/vinium/pkg/config"
 	"github.com/nkrus/vinium/pkg/database"
@@ -26,7 +27,7 @@ func main() {
 	}
 
 	// Auto-migrate модели
-	if err := db.AutoMigrate(&user.User{}, &user.RefreshToken{}); err != nil {
+	if err := db.AutoMigrate(&user.User{}, &user.RefreshToken{}, &note.Note{}); err != nil {
 		log.Fatalf("migrate: %v", err)
 	}
 
@@ -36,8 +37,11 @@ func main() {
 	authSvc := auth.NewService(userRepo, tokenSvc, cfg.JWTRefreshTTL)
 	oauthCfg := auth.NewGoogleOAuthConfig(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURL)
 
+	noteRepo := note.NewRepository(db)
+
 	authHandler := auth.NewHandler(authSvc, oauthCfg, cfg.FrontendURL, cfg.JWTRefreshTTL)
 	userHandler := user.NewHandler(userRepo)
+	noteHandler := note.NewHandler(noteRepo)
 	authMiddleware := auth.Middleware(tokenSvc)
 
 	// Роутер
@@ -67,6 +71,14 @@ func main() {
 			r.Use(authMiddleware)
 			r.Get("/me", userHandler.GetMe)
 			r.Put("/me", userHandler.UpdateMe)
+
+			r.Route("/notes", func(r chi.Router) {
+				r.Get("/", noteHandler.List)
+				r.Post("/", noteHandler.Create)
+				r.Get("/{id}", noteHandler.Get)
+				r.Put("/{id}", noteHandler.Update)
+				r.Delete("/{id}", noteHandler.Delete)
+			})
 		})
 	})
 
