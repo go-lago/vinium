@@ -41,6 +41,7 @@ type Service struct {
 	users      user.Repository
 	tokens     *TokenService
 	refreshTTL time.Duration
+	codes      *codeStore
 }
 
 func NewService(repo user.Repository, tokens *TokenService, refreshTTL time.Duration) *Service {
@@ -48,6 +49,7 @@ func NewService(repo user.Repository, tokens *TokenService, refreshTTL time.Dura
 		users:      repo,
 		tokens:     tokens,
 		refreshTTL: refreshTTL,
+		codes:      newCodeStore(),
 	}
 }
 
@@ -94,7 +96,7 @@ func (s *Service) Login(in LoginInput) (*AuthResult, error) {
 }
 
 func (s *Service) Refresh(refreshToken string) (*AuthResult, error) {
-	rt, err := s.users.FindRefreshToken(refreshToken)
+	rt, err := s.users.ClaimRefreshToken(refreshToken)
 	if err != nil {
 		return nil, ErrInvalidToken
 	}
@@ -104,12 +106,15 @@ func (s *Service) Refresh(refreshToken string) (*AuthResult, error) {
 		return nil, err
 	}
 
-	// Ротация токена: удаляем старый
-	if err := s.users.DeleteRefreshToken(refreshToken); err != nil {
-		return nil, err
-	}
-
 	return s.issueTokens(u)
+}
+
+func (s *Service) StoreOAuthCode(accessToken string) (string, error) {
+	return s.codes.store(accessToken, 60*time.Second)
+}
+
+func (s *Service) ConsumeOAuthCode(code string) (string, bool) {
+	return s.codes.consume(code)
 }
 
 func (s *Service) Logout(refreshToken string) error {

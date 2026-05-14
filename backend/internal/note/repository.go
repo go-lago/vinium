@@ -1,9 +1,13 @@
 package note
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+var ErrNoteNotFound = errors.New("note not found")
 
 type Repository interface {
 	Create(n *Note) error
@@ -45,5 +49,12 @@ func (r *repository) Update(n *Note) error {
 }
 
 func (r *repository) Delete(id uuid.UUID, userID uuid.UUID) error {
-	return r.db.Delete(&Note{}, "id = ? AND user_id = ?", id, userID).Error
+	result := r.db.Delete(&Note{}, "id = ? AND user_id = ?", id, userID)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNoteNotFound
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -14,6 +15,8 @@ type Config struct {
 	JWTAccessTTL  time.Duration
 	JWTRefreshTTL time.Duration
 
+	CookieSecure bool
+
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
@@ -26,6 +29,11 @@ func Load() (*Config, error) {
 	// .env не обязателен в продакшне — ошибку игнорируем
 	_ = godotenv.Load()
 
+	jwtSecret := getEnv("JWT_SECRET", "")
+	if len(jwtSecret) < 32 {
+		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters (got %d)", len(jwtSecret))
+	}
+
 	accessTTL, err := time.ParseDuration(getEnv("JWT_ACCESS_TTL", "15m"))
 	if err != nil {
 		return nil, err
@@ -37,9 +45,10 @@ func Load() (*Config, error) {
 
 	return &Config{
 		DatabaseURL:        getEnv("DATABASE_URL", ""),
-		JWTSecret:          getEnv("JWT_SECRET", ""),
+		JWTSecret:          jwtSecret,
 		JWTAccessTTL:       accessTTL,
 		JWTRefreshTTL:      refreshTTL,
+		CookieSecure:       getEnvBool("COOKIE_SECURE", true),
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 		GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", ""),
@@ -53,4 +62,16 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	v := os.Getenv(key)
+	switch v {
+	case "true", "1", "yes":
+		return true
+	case "false", "0", "no":
+		return false
+	default:
+		return fallback
+	}
 }

@@ -40,13 +40,17 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
-func userID(r *http.Request) uuid.UUID {
-	id, _ := ctxutil.GetUserID(r.Context())
-	return id
+func userID(r *http.Request) (uuid.UUID, bool) {
+	return ctxutil.GetUserID(r.Context())
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	notes, err := h.repo.FindByUserID(userID(r))
+	uid, ok := userID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	notes, err := h.repo.FindByUserID(uid)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch notes")
 		return
@@ -55,6 +59,12 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
+	uid, ok := userID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req createRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -62,7 +72,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	n := &Note{
-		UserID:  userID(r),
+		UserID:  uid,
 		Title:   req.Title,
 		Content: req.Content,
 	}
@@ -74,6 +84,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
+	uid, ok := userID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	noteID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid note id")
@@ -90,7 +105,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if n.UserID != userID(r) {
+	if n.UserID != uid {
 		writeError(w, http.StatusNotFound, "note not found")
 		return
 	}
@@ -98,6 +113,11 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	uid, ok := userID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	noteID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid note id")
@@ -114,11 +134,12 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if n.UserID != userID(r) {
+	if n.UserID != uid {
 		writeError(w, http.StatusNotFound, "note not found")
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req updateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -137,13 +158,22 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	uid, ok := userID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	noteID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid note id")
 		return
 	}
 
-	if err := h.repo.Delete(noteID, userID(r)); err != nil {
+	if err := h.repo.Delete(noteID, uid); err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			writeError(w, http.StatusNotFound, "note not found")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to delete note")
 		return
 	}

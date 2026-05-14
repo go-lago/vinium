@@ -11,18 +11,20 @@ import (
 const refreshTokenCookie = "refresh_token"
 
 type Handler struct {
-	service     *Service
-	oauthConfig *oauth2.Config
-	frontendURL string
-	refreshTTL  time.Duration
+	service      *Service
+	oauthConfig  *oauth2.Config
+	frontendURL  string
+	refreshTTL   time.Duration
+	cookieSecure bool
 }
 
-func NewHandler(service *Service, oauthConfig *oauth2.Config, frontendURL string, refreshTTL time.Duration) *Handler {
+func NewHandler(service *Service, oauthConfig *oauth2.Config, frontendURL string, refreshTTL time.Duration, cookieSecure bool) *Handler {
 	return &Handler{
-		service:     service,
-		oauthConfig: oauthConfig,
-		frontendURL: frontendURL,
-		refreshTTL:  refreshTTL,
+		service:      service,
+		oauthConfig:  oauthConfig,
+		frontendURL:  frontendURL,
+		refreshTTL:   refreshTTL,
+		cookieSecure: cookieSecure,
 	}
 }
 
@@ -161,7 +163,27 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.setRefreshCookie(w, result.RefreshToken)
-	http.Redirect(w, r, h.frontendURL+"/auth/callback?token="+result.AccessToken, http.StatusTemporaryRedirect)
+	code, err := h.service.StoreOAuthCode(result.AccessToken)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	http.Redirect(w, r, h.frontendURL+"/auth/callback?code="+code, http.StatusTemporaryRedirect)
+}
+
+// GET /api/v1/auth/google/exchange?code=xxx
+func (h *Handler) ExchangeGoogleCode(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		respondError(w, http.StatusBadRequest, "code is required")
+		return
+	}
+	accessToken, ok := h.service.ConsumeOAuthCode(code)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "invalid or expired code")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]string{"access_token": accessToken})
 }
 
 func (h *Handler) setRefreshCookie(w http.ResponseWriter, token string) {
@@ -170,7 +192,7 @@ func (h *Handler) setRefreshCookie(w http.ResponseWriter, token string) {
 		Value:    token,
 		MaxAge:   int(h.refreshTTL.Seconds()),
 		HttpOnly: true,
-		Secure:   false, // true в продакшне
+		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 	})

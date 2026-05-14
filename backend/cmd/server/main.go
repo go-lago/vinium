@@ -39,7 +39,7 @@ func main() {
 
 	noteRepo := note.NewRepository(db)
 
-	authHandler := auth.NewHandler(authSvc, oauthCfg, cfg.FrontendURL, cfg.JWTRefreshTTL)
+	authHandler := auth.NewHandler(authSvc, oauthCfg, cfg.FrontendURL, cfg.JWTRefreshTTL, cfg.CookieSecure)
 	userHandler := user.NewHandler(userRepo)
 	noteHandler := note.NewHandler(noteRepo)
 	authMiddleware := auth.Middleware(tokenSvc)
@@ -65,6 +65,7 @@ func main() {
 			r.Post("/logout", authHandler.Logout)
 			r.Get("/google", authHandler.GoogleLogin)
 			r.Get("/google/callback", authHandler.GoogleCallback)
+			r.Get("/google/exchange", authHandler.ExchangeGoogleCode)
 		})
 
 		r.Group(func(r chi.Router) {

@@ -16,6 +16,9 @@ type Repository interface {
 
 	CreateRefreshToken(t *RefreshToken) error
 	FindRefreshToken(token string) (*RefreshToken, error)
+	// ClaimRefreshToken atomically finds and deletes a refresh token, preventing
+	// concurrent refresh races where two requests both see the same valid token.
+	ClaimRefreshToken(token string) (*RefreshToken, error)
 	DeleteRefreshToken(token string) error
 	DeleteExpiredRefreshTokens(userID uuid.UUID) error
 }
@@ -68,6 +71,20 @@ func (r *repository) FindRefreshToken(token string) (*RefreshToken, error) {
 	var t RefreshToken
 	err := r.db.First(&t, "token = ? AND expires_at > ?", token, time.Now()).Error
 	return &t, err
+}
+
+func (r *repository) ClaimRefreshToken(token string) (*RefreshToken, error) {
+	var t RefreshToken
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.First(&t, "token = ? AND expires_at > ?", token, time.Now()).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&RefreshToken{}, "token = ?", token).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
 }
 
 func (r *repository) DeleteRefreshToken(token string) error {

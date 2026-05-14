@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { userApi } from '@/api/user'
+import axios from 'axios'
 
 export function AuthCallbackPage() {
   const [searchParams] = useSearchParams()
@@ -9,20 +10,20 @@ export function AuthCallbackPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    if (!token) {
+    const code = searchParams.get('code')
+    if (!code) {
       navigate('/login', { replace: true })
       return
     }
 
-    // Временно кладём токен в store чтобы userApi.getMe() мог его использовать
-    useAuthStore.setState({ accessToken: token })
-
-    userApi
-      .getMe()
-      .then((res) => {
-        setAuth(res.data, token)
-        navigate('/', { replace: true })
+    axios
+      .get<{ access_token: string }>(`/api/v1/auth/google/exchange?code=${code}`)
+      .then(({ data }) => {
+        useAuthStore.setState({ accessToken: data.access_token })
+        return userApi.getMe().then((res) => {
+          setAuth(res.data, data.access_token)
+          navigate('/', { replace: true })
+        })
       })
       .catch(() => {
         clearAuth()

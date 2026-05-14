@@ -14,11 +14,13 @@ export function NoteEditorPage() {
   const [note, setNote] = useState<Note | null>(null)
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(true)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
 
-  const contentRef = useRef('')
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const contentRef = useRef('')
+  const titleRef = useRef('')
 
   useEffect(() => {
     if (!id) return
@@ -27,11 +29,20 @@ export function NoteEditorPage() {
       .then(({ data }) => {
         setNote(data)
         setTitle(data.title)
+        titleRef.current = data.title
         contentRef.current = data.content
       })
       .catch(() => navigate('/notes'))
       .finally(() => setLoading(false))
   }, [id, navigate])
+
+  // Clean up timers on unmount to prevent saving after navigation
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      if (savedTimer.current) clearTimeout(savedTimer.current)
+    }
+  }, [])
 
   const save = async (newTitle: string, newContent: string) => {
     if (!id || !note) return
@@ -46,34 +57,39 @@ export function NoteEditorPage() {
       if (savedTimer.current) clearTimeout(savedTimer.current)
       savedTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
     } catch {
-      setSaveStatus('idle')
+      setSaveStatus('error')
     }
   }
 
-  const scheduleSave = (newTitle: string, newContent: string) => {
+  // Schedule save reading refs at fire time, not at schedule time
+  const scheduleSave = () => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => save(newTitle, newContent), AUTOSAVE_DELAY)
+    saveTimer.current = setTimeout(
+      () => save(titleRef.current, contentRef.current),
+      AUTOSAVE_DELAY,
+    )
   }
 
   const handleTitleChange = (value: string) => {
     setTitle(value)
-    scheduleSave(value, contentRef.current)
+    titleRef.current = value
+    scheduleSave()
   }
 
   const handleContentChange = (state: string) => {
     contentRef.current = state
-    scheduleSave(title, state)
+    scheduleSave()
   }
 
   const handleDelete = async () => {
-    if (!id || !confirm('Удалить заметку?')) return
+    if (!id) return
     await notesApi.delete(id)
     navigate('/notes')
   }
 
   const handleTogglePin = async () => {
     if (!id || !note) return
-    const updated = { title, content: contentRef.current, is_pinned: !note.is_pinned }
+    const updated = { title: titleRef.current, content: contentRef.current, is_pinned: !note.is_pinned }
     const { data } = await notesApi.update(id, updated)
     setNote(data)
   }
@@ -82,6 +98,11 @@ export function NoteEditorPage() {
     return <div className="p-8 text-muted-foreground">Загрузка...</div>
   }
 
+  const saveStatusText =
+    saveStatus === 'saving' ? 'Сохранение...' :
+    saveStatus === 'saved' ? 'Сохранено' :
+    saveStatus === 'error' ? 'Не сохранено' : ''
+
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-4">
@@ -89,15 +110,36 @@ export function NoteEditorPage() {
           ← Заметки
         </Button>
         <div className="flex items-center gap-2">
-          <span className={`text-sm transition-opacity duration-500 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} text-muted-foreground`}>
-            {saveStatus === 'saving' ? 'Сохранение...' : 'Сохранено'}
-          </span>
+          {saveStatus === 'error' ? (
+            <button
+              className="text-sm text-destructive underline cursor-pointer"
+              onClick={() => save(titleRef.current, contentRef.current)}
+            >
+              Не сохранено — повторить
+            </button>
+          ) : (
+            <span className={`text-sm transition-opacity duration-500 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} text-muted-foreground`}>
+              {saveStatusText}
+            </span>
+          )}
           <Button variant="ghost" size="sm" onClick={handleTogglePin}>
-            {note?.is_pinned ? '📌 Откреплено' : '📌 Закрепить'}
+            {note?.is_pinned ? '📌 Открепить' : '📌 Закрепить'}
           </Button>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            Удалить
-          </Button>
+          {deleteConfirm ? (
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-muted-foreground">Удалить навсегда?</span>
+              <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(false)}>
+                Отмена
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDelete}>
+                Удалить
+              </Button>
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(true)}>
+              Удалить
+            </Button>
+          )}
         </div>
       </div>
 

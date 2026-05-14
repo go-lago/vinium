@@ -15,35 +15,57 @@ function formatDate(iso: string) {
 export function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
     notesApi
       .list()
       .then(({ data }) => setNotes(data))
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [])
 
   const handleCreate = async () => {
-    const { data } = await notesApi.create({ title: '', content: '' })
-    navigate(`/notes/${data.id}`)
+    if (isCreating) return
+    setIsCreating(true)
+    try {
+      const { data } = await notesApi.create({ title: '', content: '' })
+      navigate(`/notes/${data.id}`)
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   if (loading) {
     return <div className="p-8 text-muted-foreground">Загрузка...</div>
   }
 
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-muted-foreground mb-4">Не удалось загрузить заметки</p>
+        <Button variant="ghost" onClick={() => { setError(false); setLoading(true); notesApi.list().then(({ data }) => setNotes(data)).catch(() => setError(true)).finally(() => setLoading(false)) }}>
+          Повторить
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Заметки</h1>
-        <Button onClick={handleCreate}>Новая заметка</Button>
+        <Button onClick={handleCreate} disabled={isCreating}>
+          {isCreating ? 'Создание...' : 'Новая заметка'}
+        </Button>
       </div>
 
       {notes.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="mb-4">Пока нет ни одной заметки</p>
-          <Button onClick={handleCreate}>Создать первую</Button>
+          <Button onClick={handleCreate} disabled={isCreating}>Создать первую</Button>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
