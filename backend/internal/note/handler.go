@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/nkrus/vinium/pkg/ctxutil"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -20,14 +22,16 @@ func NewHandler(repo Repository) *Handler {
 }
 
 type createRequest struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Title   string   `json:"title"`
+	Content string   `json:"content"`
+	Tags    []string `json:"tags"`
 }
 
 type updateRequest struct {
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	IsPinned bool   `json:"is_pinned"`
+	Title    string   `json:"title"`
+	Content  string   `json:"content"`
+	IsPinned bool     `json:"is_pinned"`
+	Tags     []string `json:"tags"`
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -44,18 +48,29 @@ func userID(r *http.Request) (uuid.UUID, bool) {
 	return ctxutil.GetUserID(r.Context())
 }
 
+func marshalTags(tags []string) datatypes.JSON {
+	if tags == nil {
+		tags = []string{}
+	}
+	b, _ := json.Marshal(tags)
+	return datatypes.JSON(b)
+}
+
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	uid, ok := userID(r)
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	notes, err := h.repo.FindByUserID(uid)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+
+	summaries, err := h.repo.FindSummaryByUserID(uid, page, perPage)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch notes")
 		return
 	}
-	writeJSON(w, http.StatusOK, notes)
+	writeJSON(w, http.StatusOK, summaries)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -72,9 +87,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	n := &Note{
-		UserID:  uid,
-		Title:   req.Title,
-		Content: req.Content,
+		UserID:       uid,
+		Title:        req.Title,
+		Content:      req.Content,
+		ContentPlain: extractPlainText(req.Content),
+		Tags:         marshalTags(req.Tags),
 	}
 	if err := h.repo.Create(n); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create note")
@@ -148,7 +165,9 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	n.Title = req.Title
 	n.Content = req.Content
+	n.ContentPlain = extractPlainText(req.Content)
 	n.IsPinned = req.IsPinned
+	n.Tags = marshalTags(req.Tags)
 
 	if err := h.repo.Update(n); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update note")

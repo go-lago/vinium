@@ -12,7 +12,7 @@ var ErrNoteNotFound = errors.New("note not found")
 type Repository interface {
 	Create(n *Note) error
 	FindByID(id uuid.UUID) (*Note, error)
-	FindByUserID(userID uuid.UUID) ([]Note, error)
+	FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([]NoteSummary, error)
 	Update(n *Note) error
 	Delete(id uuid.UUID, userID uuid.UUID) error
 }
@@ -38,10 +38,27 @@ func (r *repository) FindByID(id uuid.UUID) (*Note, error) {
 	return &n, err
 }
 
-func (r *repository) FindByUserID(userID uuid.UUID) ([]Note, error) {
-	var notes []Note
-	err := r.db.Where("user_id = ?", userID).Order("updated_at DESC").Find(&notes).Error
-	return notes, err
+func (r *repository) FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([]NoteSummary, error) {
+	if perPage < 1 {
+		perPage = 50
+	}
+	if perPage > 100 {
+		perPage = 100
+	}
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * perPage
+
+	var summaries []NoteSummary
+	err := r.db.Model(&Note{}).
+		Select("id, user_id, title, content_plain, content_version, type, tags, is_pinned, created_at, updated_at").
+		Where("user_id = ?", userID).
+		Order("is_pinned DESC, updated_at DESC").
+		Limit(perPage).
+		Offset(offset).
+		Scan(&summaries).Error
+	return summaries, err
 }
 
 func (r *repository) Update(n *Note) error {

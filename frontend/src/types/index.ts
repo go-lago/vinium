@@ -37,7 +37,13 @@ export interface Note {
   user_id: string
   title: string
   content: string
+  content_plain: string
+  content_version: number
+  type: string
+  tags: string[]
   is_pinned: boolean
   created_at: string
   updated_at: string
 }
+
+export type NoteSummary = Omit<Note, 'content'>

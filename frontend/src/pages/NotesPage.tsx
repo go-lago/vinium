@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { notesApi } from '@/api/notes'
-import type { Note } from '@/types'
+import type { NoteSummary } from '@/types'
 import { Button } from '@/components/ui/button'
 
 function formatDate(iso: string) {
@@ -13,7 +13,7 @@ function formatDate(iso: string) {
 }
 
 export function NotesPage() {
-  const [notes, setNotes] = useState<Note[]>([])
+  const [notes, setNotes] = useState<NoteSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
