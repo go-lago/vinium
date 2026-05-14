@@ -16,23 +16,23 @@ import { ToolbarPlugin } from './plugins/ToolbarPlugin'
 
 const theme = {
   heading: {
-    h1: 'text-3xl font-bold my-4',
-    h2: 'text-2xl font-semibold my-3',
-    h3: 'text-xl font-semibold my-2',
+    h1: 'text-2xl font-medium tracking-tight my-5 text-foreground',
+    h2: 'text-lg font-medium tracking-tight my-4 text-foreground',
+    h3: 'text-base font-medium my-3 text-foreground',
   },
   list: {
-    ul: 'list-disc pl-6 my-2',
-    ol: 'list-decimal pl-6 my-2',
+    ul: 'list-disc pl-5 my-3',
+    ol: 'list-decimal pl-5 my-3',
     listitem: 'my-1',
   },
-  quote: 'border-l-4 border-muted-foreground pl-4 italic my-3 text-muted-foreground',
-  code: 'bg-muted font-mono text-sm rounded px-1',
+  quote: 'border-l-2 border-border pl-3.5 italic my-3 text-muted-foreground',
+  code: 'bg-muted font-mono text-[12px] rounded px-1 py-0.5',
   text: {
-    bold: 'font-bold',
+    bold: 'font-semibold',
     italic: 'italic',
     underline: 'underline',
     strikethrough: 'line-through',
-    code: 'bg-muted font-mono text-sm rounded px-1',
+    code: 'bg-muted font-mono text-[12px] rounded px-1 py-0.5',
   },
   link: 'text-primary underline',
 }
@@ -65,7 +65,7 @@ export function Editor({ initialContent, onChange, editable = true }: EditorProp
         <div className="relative min-h-[400px]">
           <RichTextPlugin
             contentEditable={
-              <ContentEditable className="outline-none min-h-[400px] py-2 text-base leading-relaxed" />
+              <ContentEditable className="outline-none min-h-[400px] py-2 text-[15px] leading-relaxed text-foreground/90" />
             }
             placeholder={
               <div className="absolute top-2 left-0 text-muted-foreground pointer-events-none select-none">

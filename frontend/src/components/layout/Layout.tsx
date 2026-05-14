@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { CommandPalette } from '@/components/CommandPalette'
 
@@ -19,13 +18,15 @@ export function Layout() {
   }, [])
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6">
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <main className="flex-1 flex flex-col overflow-hidden min-w-0">
           <Outlet />
         </main>
+        <div className="h-7 border-t flex items-center px-5 gap-4 font-mono text-[10px] text-muted-foreground flex-shrink-0">
+          <span>Vinium</span>
+        </div>
       </div>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
