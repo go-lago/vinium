@@ -38,10 +38,11 @@ func main() {
 	oauthCfg := auth.NewGoogleOAuthConfig(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURL)
 
 	noteRepo := note.NewRepository(db)
+	noteSvc := note.NewService(noteRepo)
 
 	authHandler := auth.NewHandler(authSvc, oauthCfg, cfg.FrontendURL, cfg.JWTRefreshTTL, cfg.CookieSecure)
 	userHandler := user.NewHandler(userRepo)
-	noteHandler := note.NewHandler(noteRepo)
+	noteHandler := note.NewHandler(noteSvc)
 	authMiddleware := auth.Middleware(tokenSvc)
 
 	// Роутер

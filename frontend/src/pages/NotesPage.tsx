@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { notesApi } from '@/api/notes'
 import type { NoteSummary } from '@/types'
 import { Button } from '@/components/ui/button'
+
+const SEARCH_DEBOUNCE = 300
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('ru-RU', {
@@ -17,15 +19,35 @@ export function NotesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [query, setQuery] = useState('')
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    notesApi
-      .list()
+  const fetchNotes = (q = '') => {
+    setLoading(true)
+    setError(false)
+    const req = q ? notesApi.search(q) : notesApi.list()
+    req
       .then(({ data }) => setNotes(data))
       .catch(() => setError(true))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    fetchNotes()
   }, [])
+
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current)
+    }
+  }, [])
+
+  const handleSearchChange = (value: string) => {
+    setQuery(value)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => fetchNotes(value), SEARCH_DEBOUNCE)
+  }
 
   const handleCreate = async () => {
     if (isCreating) return
@@ -38,15 +60,11 @@ export function NotesPage() {
     }
   }
 
-  if (loading) {
-    return <div className="p-8 text-muted-foreground">Загрузка...</div>
-  }
-
   if (error) {
     return (
       <div className="p-8 text-center">
         <p className="text-muted-foreground mb-4">Не удалось загрузить заметки</p>
-        <Button variant="ghost" onClick={() => { setError(false); setLoading(true); notesApi.list().then(({ data }) => setNotes(data)).catch(() => setError(true)).finally(() => setLoading(false)) }}>
+        <Button variant="ghost" onClick={() => fetchNotes(query)}>
           Повторить
         </Button>
       </div>
@@ -55,17 +73,30 @@ export function NotesPage() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Заметки</h1>
         <Button onClick={handleCreate} disabled={isCreating}>
           {isCreating ? 'Создание...' : 'Новая заметка'}
         </Button>
       </div>
 
-      {notes.length === 0 ? (
+      <input
+        className="w-full mb-6 rounded-md border bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
+        placeholder="Поиск по заметкам..."
+        value={query}
+        onChange={(e) => handleSearchChange(e.target.value)}
+      />
+
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground text-sm">Загрузка...</div>
+      ) : notes.length === 0 && !query ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="mb-4">Пока нет ни одной заметки</p>
           <Button onClick={handleCreate} disabled={isCreating}>Создать первую</Button>
+        </div>
+      ) : notes.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground text-sm">
+          Ничего не найдено по запросу «{query}»
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -83,7 +114,12 @@ export function NotesPage() {
                     <span className="text-xs text-muted-foreground">📌</span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
+                {note.content_plain && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                    {note.content_plain.slice(0, 120)}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
                   {formatDate(note.updated_at)}
                 </p>
               </Link>

@@ -9,29 +9,31 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/nkrus/vinium/pkg/ctxutil"
-	"gorm.io/datatypes"
-	"gorm.io/gorm"
 )
 
 type Handler struct {
-	repo Repository
+	svc *Service
 }
 
-func NewHandler(repo Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(svc *Service) *Handler {
+	return &Handler{svc: svc}
 }
 
 type createRequest struct {
-	Title   string   `json:"title"`
-	Content string   `json:"content"`
-	Tags    []string `json:"tags"`
+	Title          string   `json:"title"`
+	Content        string   `json:"content"`
+	Tags           []string `json:"tags"`
+	Type           string   `json:"type"`
+	LexicalVersion string   `json:"lexical_version"`
 }
 
 type updateRequest struct {
-	Title    string   `json:"title"`
-	Content  string   `json:"content"`
-	IsPinned bool     `json:"is_pinned"`
-	Tags     []string `json:"tags"`
+	Title          string   `json:"title"`
+	Content        string   `json:"content"`
+	IsPinned       bool     `json:"is_pinned"`
+	Tags           []string `json:"tags"`
+	Type           string   `json:"type"`
+	LexicalVersion string   `json:"lexical_version"`
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -48,14 +50,6 @@ func userID(r *http.Request) (uuid.UUID, bool) {
 	return ctxutil.GetUserID(r.Context())
 }
 
-func marshalTags(tags []string) datatypes.JSON {
-	if tags == nil {
-		tags = []string{}
-	}
-	b, _ := json.Marshal(tags)
-	return datatypes.JSON(b)
-}
-
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	uid, ok := userID(r)
 	if !ok {
@@ -64,8 +58,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+	query := r.URL.Query().Get("q")
 
-	summaries, err := h.repo.FindSummaryByUserID(uid, page, perPage)
+	summaries, err := h.svc.List(ListInput{UserID: uid, Page: page, PerPage: perPage, Query: query})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch notes")
 		return
@@ -86,14 +81,15 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n := &Note{
-		UserID:       uid,
-		Title:        req.Title,
-		Content:      req.Content,
-		ContentPlain: extractPlainText(req.Content),
-		Tags:         marshalTags(req.Tags),
-	}
-	if err := h.repo.Create(n); err != nil {
+	n, err := h.svc.Create(CreateInput{
+		UserID:         uid,
+		Title:          req.Title,
+		Content:        req.Content,
+		Tags:           req.Tags,
+		NoteType:       req.Type,
+		LexicalVersion: req.LexicalVersion,
+	})
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create note")
 		return
 	}
@@ -112,18 +108,13 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n, err := h.repo.FindByID(noteID)
+	n, err := h.svc.GetByID(noteID, uid)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, ErrNoteNotFound) {
 			writeError(w, http.StatusNotFound, "note not found")
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "failed to fetch note")
-		return
-	}
-
-	if n.UserID != uid {
-		writeError(w, http.StatusNotFound, "note not found")
 		return
 	}
 	writeJSON(w, http.StatusOK, n)
@@ -141,21 +132,6 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n, err := h.repo.FindByID(noteID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			writeError(w, http.StatusNotFound, "note not found")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "failed to fetch note")
-		return
-	}
-
-	if n.UserID != uid {
-		writeError(w, http.StatusNotFound, "note not found")
-		return
-	}
-
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req updateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -163,13 +139,19 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n.Title = req.Title
-	n.Content = req.Content
-	n.ContentPlain = extractPlainText(req.Content)
-	n.IsPinned = req.IsPinned
-	n.Tags = marshalTags(req.Tags)
-
-	if err := h.repo.Update(n); err != nil {
+	n, err := h.svc.Update(noteID, uid, UpdateInput{
+		Title:          req.Title,
+		Content:        req.Content,
+		IsPinned:       req.IsPinned,
+		Tags:           req.Tags,
+		NoteType:       req.Type,
+		LexicalVersion: req.LexicalVersion,
+	})
+	if err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			writeError(w, http.StatusNotFound, "note not found")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to update note")
 		return
 	}
@@ -188,7 +170,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.Delete(noteID, uid); err != nil {
+	if err := h.svc.Delete(noteID, uid); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			writeError(w, http.StatusNotFound, "note not found")
 			return

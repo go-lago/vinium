@@ -13,6 +13,7 @@ type Repository interface {
 	Create(n *Note) error
 	FindByID(id uuid.UUID) (*Note, error)
 	FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([]NoteSummary, error)
+	Search(userID uuid.UUID, query string, page, perPage int) ([]NoteSummary, error)
 	Update(n *Note) error
 	Delete(id uuid.UUID, userID uuid.UUID) error
 }
@@ -39,24 +40,31 @@ func (r *repository) FindByID(id uuid.UUID) (*Note, error) {
 }
 
 func (r *repository) FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([]NoteSummary, error) {
-	if perPage < 1 {
-		perPage = 50
-	}
-	if perPage > 100 {
-		perPage = 100
-	}
-	if page < 1 {
-		page = 1
-	}
-	offset := (page - 1) * perPage
-
+	page, perPage = clampPage(page, perPage)
 	var summaries []NoteSummary
 	err := r.db.Model(&Note{}).
 		Select("id, user_id, title, content_plain, content_version, type, tags, is_pinned, created_at, updated_at").
 		Where("user_id = ?", userID).
 		Order("is_pinned DESC, updated_at DESC").
 		Limit(perPage).
-		Offset(offset).
+		Offset((page - 1) * perPage).
+		Scan(&summaries).Error
+	return summaries, err
+}
+
+func (r *repository) Search(userID uuid.UUID, query string, page, perPage int) ([]NoteSummary, error) {
+	page, perPage = clampPage(page, perPage)
+	var summaries []NoteSummary
+	err := r.db.Model(&Note{}).
+		Select("id, user_id, title, content_plain, content_version, type, tags, is_pinned, created_at, updated_at").
+		Where("user_id = ?", userID).
+		Where(
+			"to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(content_plain,'')) @@ plainto_tsquery('simple', ?)",
+			query,
+		).
+		Order("is_pinned DESC, updated_at DESC").
+		Limit(perPage).
+		Offset((page - 1) * perPage).
 		Scan(&summaries).Error
 	return summaries, err
 }
@@ -74,4 +82,17 @@ func (r *repository) Delete(id uuid.UUID, userID uuid.UUID) error {
 		return ErrNoteNotFound
 	}
 	return nil
+}
+
+func clampPage(page, perPage int) (int, int) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 50
+	}
+	if perPage > 100 {
+		perPage = 100
+	}
+	return page, perPage
 }
