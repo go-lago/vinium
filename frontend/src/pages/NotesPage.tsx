@@ -2,20 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { notesApi } from '@/api/notes'
 import type { NoteSummary } from '@/types'
+import { formatRelative } from '@/lib/format'
 
 const SEARCH_DEBOUNCE = 300
-
-function formatRelative(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'только что'
-  if (m < 60) return `${m}м`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}ч`
-  const d = Math.floor(h / 24)
-  if (d < 7) return `${d}д`
-  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
-}
 
 function IconNote() {
   return (

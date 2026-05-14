@@ -3,12 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { notesApi } from '@/api/notes'
 import type { Note } from '@/types'
 import { Editor } from '@/editor/Editor'
+import { formatDate } from '@/lib/format'
 
 const AUTOSAVE_DELAY = 1500
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
-}
 
 function IconChevron() {
   return (
