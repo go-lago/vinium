@@ -44,7 +44,7 @@ function App() {
             </PrivateRoute>
           }
         >
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/notes" replace />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/notes/:id" element={<NoteEditorPage />} />
         </Route>

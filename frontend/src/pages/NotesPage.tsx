@@ -7,18 +7,45 @@ import { Button } from '@/components/ui/button'
 const SEARCH_DEBOUNCE = 300
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function NoteCard({ note }: { note: NoteSummary }) {
+  return (
+    <li>
+      <Link
+        to={`/notes/${note.id}`}
+        className="block rounded-lg border p-4 hover:bg-accent transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <span className="font-medium">
+            {note.title || <span className="text-muted-foreground italic">Без названия</span>}
+          </span>
+          {note.is_pinned && <span className="text-xs text-muted-foreground">📌</span>}
+        </div>
+        {note.content_plain && (
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+            {note.content_plain.slice(0, 120)}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground mt-1">{formatDate(note.updated_at)}</p>
+      </Link>
+    </li>
+  )
+}
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+      {label}
+    </p>
+  )
 }
 
 export function NotesPage() {
   const [notes, setNotes] = useState<NoteSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
   const [query, setQuery] = useState('')
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigate = useNavigate()
@@ -33,15 +60,8 @@ export function NotesPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    fetchNotes()
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current)
-    }
-  }, [])
+  useEffect(() => { fetchNotes() }, [])
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current) }, [])
 
   const handleSearchChange = (value: string) => {
     setQuery(value)
@@ -49,35 +69,23 @@ export function NotesPage() {
     searchTimer.current = setTimeout(() => fetchNotes(value), SEARCH_DEBOUNCE)
   }
 
-  const handleCreate = async () => {
-    if (isCreating) return
-    setIsCreating(true)
-    try {
-      const { data } = await notesApi.create({ title: '', content: '' })
-      navigate(`/notes/${data.id}`)
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   if (error) {
     return (
       <div className="p-8 text-center">
         <p className="text-muted-foreground mb-4">Не удалось загрузить заметки</p>
-        <Button variant="ghost" onClick={() => fetchNotes(query)}>
-          Повторить
-        </Button>
+        <Button variant="ghost" onClick={() => fetchNotes(query)}>Повторить</Button>
       </div>
     )
   }
+
+  const pinned = notes.filter(n => n.is_pinned)
+  const recent = notes.filter(n => !n.is_pinned)
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Заметки</h1>
-        <Button onClick={handleCreate} disabled={isCreating}>
-          {isCreating ? 'Создание...' : 'Новая заметка'}
-        </Button>
+        <Button onClick={() => navigate('/notes/new')}>Новая заметка</Button>
       </div>
 
       <input
@@ -92,40 +100,32 @@ export function NotesPage() {
       ) : notes.length === 0 && !query ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="mb-4">Пока нет ни одной заметки</p>
-          <Button onClick={handleCreate} disabled={isCreating}>Создать первую</Button>
+          <Button onClick={() => navigate('/notes/new')}>Создать первую</Button>
         </div>
       ) : notes.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground text-sm">
           Ничего не найдено по запросу «{query}»
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {notes.map((note) => (
-            <li key={note.id}>
-              <Link
-                to={`/notes/${note.id}`}
-                className="block rounded-lg border p-4 hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">
-                    {note.title || <span className="text-muted-foreground italic">Без названия</span>}
-                  </span>
-                  {note.is_pinned && (
-                    <span className="text-xs text-muted-foreground">📌</span>
-                  )}
-                </div>
-                {note.content_plain && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                    {note.content_plain.slice(0, 120)}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatDate(note.updated_at)}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          {pinned.length > 0 && !query && (
+            <div className="mb-6">
+              <SectionLabel label="Закреплено" />
+              <ul className="flex flex-col gap-2">
+                {pinned.map(note => <NoteCard key={note.id} note={note} />)}
+              </ul>
+            </div>
+          )}
+
+          {recent.length > 0 && (
+            <div>
+              {pinned.length > 0 && !query && <SectionLabel label="Недавние" />}
+              <ul className="flex flex-col gap-2">
+                {recent.map(note => <NoteCard key={note.id} note={note} />)}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

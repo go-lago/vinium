@@ -10,10 +10,11 @@ const AUTOSAVE_DELAY = 1500
 export function NoteEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const isDraft = id === 'new'
 
   const [note, setNote] = useState<Note | null>(null)
   const [title, setTitle] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!isDraft)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [deleteConfirm, setDeleteConfirm] = useState(false)
 
@@ -21,11 +22,27 @@ export function NoteEditorPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const contentRef = useRef('')
   const titleRef = useRef('')
+  const isCreatingRef = useRef(false)
+  // Holds the note created in draft mode so the next useEffect can skip the fetch
+  const justCreatedRef = useRef<Note | null>(null)
 
   useEffect(() => {
-    if (!id) return
+    if (isDraft) return
+
+    // Note was just created in draft mode — skip fetch, use cached data
+    if (justCreatedRef.current?.id === id) {
+      const n = justCreatedRef.current
+      justCreatedRef.current = null
+      setNote(n)
+      setTitle(n.title)
+      titleRef.current = n.title
+      contentRef.current = n.content
+      setLoading(false)
+      return
+    }
+
     notesApi
-      .get(id)
+      .get(id!)
       .then(({ data }) => {
         setNote(data)
         setTitle(data.title)
@@ -34,9 +51,8 @@ export function NoteEditorPage() {
       })
       .catch(() => navigate('/notes'))
       .finally(() => setLoading(false))
-  }, [id, navigate])
+  }, [id, isDraft, navigate])
 
-  // Clean up timers on unmount to prevent saving after navigation
   useEffect(() => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -44,7 +60,31 @@ export function NoteEditorPage() {
     }
   }, [])
 
+  const markSaved = () => {
+    setSaveStatus('saved')
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+  }
+
   const save = async (newTitle: string, newContent: string) => {
+    if (isDraft) {
+      if (!newTitle && !newContent) return
+      if (isCreatingRef.current) return
+      isCreatingRef.current = true
+      setSaveStatus('saving')
+      try {
+        const { data: newNote } = await notesApi.create({ title: newTitle, content: newContent })
+        justCreatedRef.current = newNote
+        navigate(`/notes/${newNote.id}`, { replace: true })
+        markSaved()
+      } catch {
+        setSaveStatus('error')
+      } finally {
+        isCreatingRef.current = false
+      }
+      return
+    }
+
     if (!id || !note) return
     setSaveStatus('saving')
     try {
@@ -53,15 +93,12 @@ export function NoteEditorPage() {
         content: newContent,
         is_pinned: note.is_pinned,
       })
-      setSaveStatus('saved')
-      if (savedTimer.current) clearTimeout(savedTimer.current)
-      savedTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+      markSaved()
     } catch {
       setSaveStatus('error')
     }
   }
 
-  // Schedule save reading refs at fire time, not at schedule time
   const scheduleSave = () => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(
@@ -82,13 +119,13 @@ export function NoteEditorPage() {
   }
 
   const handleDelete = async () => {
-    if (!id) return
+    if (!id || isDraft) return
     await notesApi.delete(id)
     navigate('/notes')
   }
 
   const handleTogglePin = async () => {
-    if (!id || !note) return
+    if (!id || !note || isDraft) return
     const updated = { title: titleRef.current, content: contentRef.current, is_pinned: !note.is_pinned }
     const { data } = await notesApi.update(id, updated)
     setNote(data)
@@ -100,8 +137,8 @@ export function NoteEditorPage() {
 
   const saveStatusText =
     saveStatus === 'saving' ? 'Сохранение...' :
-    saveStatus === 'saved' ? 'Сохранено' :
-    saveStatus === 'error' ? 'Не сохранено' : ''
+    saveStatus === 'saved'  ? 'Сохранено'      :
+    saveStatus === 'error'  ? 'Не сохранено'   : ''
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
@@ -122,23 +159,29 @@ export function NoteEditorPage() {
               {saveStatusText}
             </span>
           )}
-          <Button variant="ghost" size="sm" onClick={handleTogglePin}>
-            {note?.is_pinned ? '📌 Открепить' : '📌 Закрепить'}
-          </Button>
-          {deleteConfirm ? (
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground">Удалить навсегда?</span>
-              <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(false)}>
-                Отмена
-              </Button>
-              <Button variant="destructive" size="sm" onClick={handleDelete}>
+
+          {!isDraft && (
+            <Button variant="ghost" size="sm" onClick={handleTogglePin}>
+              {note?.is_pinned ? '📌 Открепить' : '📌 Закрепить'}
+            </Button>
+          )}
+
+          {!isDraft && (
+            deleteConfirm ? (
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">Удалить навсегда?</span>
+                <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(false)}>
+                  Отмена
+                </Button>
+                <Button variant="destructive" size="sm" onClick={handleDelete}>
+                  Удалить
+                </Button>
+              </div>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(true)}>
                 Удалить
               </Button>
-            </div>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(true)}>
-              Удалить
-            </Button>
+            )
           )}
         </div>
       </div>
@@ -148,14 +191,13 @@ export function NoteEditorPage() {
         placeholder="Название"
         value={title}
         onChange={(e) => handleTitleChange(e.target.value)}
+        autoFocus={isDraft}
       />
 
-      {note !== null && (
-        <Editor
-          initialContent={note.content}
-          onChange={handleContentChange}
-        />
-      )}
+      <Editor
+        initialContent={note?.content ?? ''}
+        onChange={handleContentChange}
+      />
     </div>
   )
 }
