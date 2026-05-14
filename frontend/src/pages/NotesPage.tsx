@@ -55,7 +55,7 @@ export function NotesPage() {
     setError(false)
     const req = q ? notesApi.search(q) : notesApi.list()
     req
-      .then(({ data }) => setNotes(data))
+      .then(({ data }) => setNotes(data ?? []))
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }

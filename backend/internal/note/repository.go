@@ -41,7 +41,7 @@ func (r *repository) FindByID(id uuid.UUID) (*Note, error) {
 
 func (r *repository) FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([]NoteSummary, error) {
 	page, perPage = clampPage(page, perPage)
-	var summaries []NoteSummary
+	summaries := make([]NoteSummary, 0)
 	err := r.db.Model(&Note{}).
 		Select("id, user_id, title, content_plain, content_version, type, tags, is_pinned, created_at, updated_at").
 		Where("user_id = ?", userID).
@@ -54,7 +54,7 @@ func (r *repository) FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([
 
 func (r *repository) Search(userID uuid.UUID, query string, page, perPage int) ([]NoteSummary, error) {
 	page, perPage = clampPage(page, perPage)
-	var summaries []NoteSummary
+	summaries := make([]NoteSummary, 0)
 	err := r.db.Model(&Note{}).
 		Select("id, user_id, title, content_plain, content_version, type, tags, is_pinned, created_at, updated_at").
 		Where("user_id = ?", userID).
