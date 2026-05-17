@@ -30,6 +30,18 @@ function IconSun() {
   )
 }
 
+function IconTasks() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-4 h-4">
+      <path d="M2.5 4.5h2M2.5 8h2M2.5 11.5h2"/>
+      <circle cx="2.5" cy="4.5" r="0.1" fill="currentColor" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="2.5" cy="8" r="0.1" fill="currentColor" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="2.5" cy="11.5" r="0.1" fill="currentColor" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M5.5 4.5h8M5.5 8h6M5.5 11.5h7" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
 function IconMoon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
@@ -49,6 +61,7 @@ function IconLogout() {
 const navItems = [
   { icon: <IconHome />, to: '/', label: 'Dashboard', end: true },
   { icon: <IconNotes />, to: '/notes', label: 'Заметки', end: false },
+  { icon: <IconTasks />, to: '/tasks', label: 'Задачи', end: false },
 ]
 
 export function Sidebar() {

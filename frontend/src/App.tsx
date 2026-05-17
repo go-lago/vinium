@@ -7,6 +7,7 @@ import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { NotesPage } from '@/pages/NotesPage'
 import { NoteEditorPage } from '@/pages/NoteEditorPage'
+import { TasksPage } from '@/pages/TasksPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 import { authApi } from '@/api/auth'
 import { userApi } from '@/api/user'
@@ -47,6 +48,7 @@ function App() {
           <Route path="/" element={<Navigate to="/notes" replace />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/notes/:id" element={<NoteEditorPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

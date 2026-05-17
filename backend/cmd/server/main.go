@@ -14,6 +14,7 @@ import (
 	"github.com/nkrus/vinium/internal/ai"
 	"github.com/nkrus/vinium/internal/auth"
 	"github.com/nkrus/vinium/internal/note"
+	"github.com/nkrus/vinium/internal/task"
 	"github.com/nkrus/vinium/internal/user"
 	"github.com/nkrus/vinium/pkg/config"
 	"github.com/nkrus/vinium/pkg/database"
@@ -33,7 +34,7 @@ func main() {
 		log.Fatalf("database: %v", err)
 	}
 
-	if err := db.AutoMigrate(&user.User{}, &user.RefreshToken{}, &note.Note{}); err != nil {
+	if err := db.AutoMigrate(&user.User{}, &user.RefreshToken{}, &note.Note{}, &task.Task{}); err != nil {
 		log.Fatalf("migrate: %v", err)
 	}
 
@@ -45,6 +46,10 @@ func main() {
 
 	noteRepo := note.NewRepository(db)
 	noteSvc := note.NewService(noteRepo)
+
+	taskRepo := task.NewRepository(db)
+	taskSvc := task.NewService(taskRepo)
+	taskHandler := task.NewHandler(taskSvc)
 
 	orClient := openrouter.New(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
 	aiSvc := ai.NewService(orClient)
@@ -92,6 +97,14 @@ func main() {
 				r.Get("/{id}", noteHandler.Get)
 				r.Put("/{id}", noteHandler.Update)
 				r.Delete("/{id}", noteHandler.Delete)
+			})
+
+			r.Route("/tasks", func(r chi.Router) {
+				r.Get("/", taskHandler.List)
+				r.Post("/", taskHandler.Create)
+				r.Get("/{id}", taskHandler.Get)
+				r.Put("/{id}", taskHandler.Update)
+				r.Delete("/{id}", taskHandler.Delete)
 			})
 
 			r.Post("/ai/action", aiHandler.Action)

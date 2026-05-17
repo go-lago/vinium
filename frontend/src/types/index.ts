@@ -47,3 +47,37 @@ export interface Note {
 }
 
 export type NoteSummary = Omit<Note, 'content'>
+
+export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled'
+export type TaskPriority = 'none' | 'low' | 'medium' | 'high'
+
+export interface Task {
+  id: string
+  user_id: string
+  title: string
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
+  due_date: string | null
+  note_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTaskRequest {
+  title: string
+  description?: string
+  status?: TaskStatus
+  priority?: TaskPriority
+  due_date?: string | null
+  note_id?: string | null
+}
+
+export interface UpdateTaskRequest {
+  title: string
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
+  due_date: string | null
+  note_id: string | null
+}
