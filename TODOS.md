@@ -131,7 +131,7 @@ MCP server deferred to Phase 4.
 - [x] Frontend: AIPanel state machine, AbortController cancel, rate-limit error message
 
 ---
-Updated: 2026-05-17
+Updated: 2026-05-17 (Phase 6 done)
 
 ## COMPLETED PHASES SUMMARY
 
@@ -142,6 +142,7 @@ Updated: 2026-05-17
 - ✅ Phase 3c: AI text actions (summarize/rephrase/expand) via OpenRouter server key
 - ✅ Phase 4: Rich editor (slash commands, floating toolbar, drag & drop, markdown shortcuts)
 - ✅ Phase 5: Tasks — Linear-like task manager (CRUD, status groups, detail panel, priority icons)
+- ✅ Phase 6: Contexts + Projects (backend CRUD, context switcher, project detail с вкладками Notes/Tasks)
 
 ---
 
@@ -219,21 +220,28 @@ Updated: 2026-05-17
 
 ---
 
-## Phase 6 — Contexts + Projects
+## Phase 6 — Contexts + Projects ✅
 
 Цель: изолированные рабочие пространства и проекты как контейнеры.
 
 ### Contexts
-- [ ] Модель Context: id, user_id, name, color, icon
-- [ ] Переключатель контекстов в боковом меню (Personal / Work / …)
-- [ ] Notes и Tasks принадлежат контексту (context_id FK)
-- [ ] Фильтрация всего по активному контексту
+- [x] Модель Context: id, user_id, name, color, icon, is_default, sort_order
+- [x] Переключатель контекстов в боковом меню — flyout с цветными бейджами, "по умолч." пометка
+- [x] Создание контекста прямо из дропдауна: поле названия + 6 цветовых свотчей
+- [x] EnsureDefault: auto-creates "🌐 Личное" при первом обращении
+- [x] Notes и Tasks принадлежат контексту (context_id FK, nullable)
+- [x] Фильтрация notes/tasks по context_id и project_id (query params)
+- [ ] Фильтрация по активному контексту в /notes и /tasks — deferred (фронт не применяет фильтр автоматически)
 
 ### Projects
-- [ ] Модель Project: id, context_id, name, description, status
-- [ ] Проект содержит Notes + Tasks (project_id FK на обоих)
-- [ ] /projects — список проектов в контексте
-- [ ] Страница проекта: вкладки Notes / Tasks
+- [x] Модель Project: id, context_id, user_id, name, description, status (active/archived), color, icon, sort_order
+- [x] CRUD: GET /contexts/:contextId/projects, POST/GET/PUT/DELETE /projects/:id
+- [x] /projects — сетка карточек с фильтрами Активные / Архив / Все; context-aware (из store)
+- [x] Создание проекта: модальное окно с именем, описанием, color picker
+- [x] Архивирование: hover → кнопка "Архивировать/Восстановить"
+- [x] Страница проекта /projects/:id: вкладки Заметки / Задачи (filtered by project_id)
+- [x] Быстрое создание заметки/задачи прямо из страницы проекта
+- [x] Прогресс-счётчик задач (0 / N задач выполнено) в шапке проекта
 
 ---
 
