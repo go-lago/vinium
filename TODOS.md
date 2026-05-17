@@ -145,48 +145,50 @@ Updated: 2026-05-17
 
 ---
 
-## Phase 4 — Богатый редактор (NEXT)
+## Phase 4 — Богатый редактор ✅ (частично)
 
 Цель: редактор уровня Notion/AnyType — блочность, slash-команды, drag & drop, контекстное меню.
 
 ### Slash-команды (/)
-- [ ] Плагин SlashCommandPlugin для Lexical — триггер на `/` в начале блока
-- [ ] Выпадающий список с поиском: Text, H1–H3, Quote, Code, Callout, Toggle, Divider, • List, 1. List
-- [ ] Навигация стрелками + Enter для выбора, Escape для закрытия
-- [ ] Fuzzy-фильтрация по мере ввода
+- [x] Плагин SlashCommandPlugin для Lexical — триггер на `/` в начале блока
+- [x] Выпадающий список с поиском: Text, H1–H3, Quote, Code, Divider, • List, 1. List (9 команд)
+- [x] Навигация стрелками + Enter для выбора, Escape для закрытия
+- [x] Fuzzy-фильтрация по мере ввода
+- [ ] Callout и Toggle в slash-меню — deferred
 
 ### Новые типы блоков
-- [ ] **Code block** — с выбором языка, моноширинный, синтаксис highlighting
-- [ ] **Quote** — блок цитаты с левой синей полосой
-- [ ] **Callout** — блок с иконкой (info / warning / tip), цветной фон
-- [ ] **Toggle** — сворачиваемый блок (заголовок + скрытый контент)
-- [ ] **Divider** — горизонтальный разделитель (`---`)
+- [x] **Code block** — моноширинный, styled
+- [x] **Quote** — блок цитаты с левой полосой
+- [x] **Divider** — горизонтальный разделитель (`---`)
+- [ ] **Callout** — блок с иконкой (info / warning / tip) — deferred
+- [ ] **Toggle** — сворачиваемый блок — deferred
 
 ### Drag & drop блоков
-- [ ] Drag handle (⠿) появляется при наведении слева от блока
-- [ ] Перетаскивание блока → смена порядка в Lexical
-- [ ] Визуальный индикатор места вставки
+- [x] Drag handle (⠿) появляется при наведении слева от блока
+- [x] Перетаскивание блока → смена порядка в Lexical
+- [x] Визуальный индикатор места вставки
 
-### Контекстное меню (правая кнопка / floating toolbar)
-- [ ] Появляется при выделении текста (floating toolbar) или правом клике на блок
-- [ ] Форматирование: Bold / Italic / Underline / Strike / Code (inline) / Link
-- [ ] Тип блока: сменить на H1–H3 / Quote / Callout / Code
-- [ ] AI для выделенного: Перефразировать / Расширить / Сократить
-- [ ] Скопировать блок / Удалить блок
+### Floating toolbar (при выделении текста)
+- [x] Появляется при выделении текста
+- [x] Форматирование: Bold / Italic / Underline / Strike / Code (inline)
+- [x] Тип блока: H1–H3 / Quote
+- [ ] Link — deferred
+- [ ] AI для выделенного: Перефразировать / Расширить / Сократить — deferred
+- [ ] Скопировать блок / Удалить блок — deferred
 
 ### Markdown shortcuts
-- [ ] `#`, `##`, `###` + пробел → H1/H2/H3
-- [ ] `-` + пробел → bullet list
-- [ ] `1.` + пробел → numbered list
-- [ ] ` ``` ` → code block
-- [ ] `>` + пробел → quote
-- [ ] `---` → divider
-- [ ] `**text**` → bold, `_text_` → italic
+- [x] `#`, `##`, `###` + пробел → H1/H2/H3
+- [x] `-` + пробел → bullet list
+- [x] `1.` + пробел → numbered list
+- [x] ` ``` ` → code block
+- [x] `>` + пробел → quote
+- [x] `---` → divider
+- [x] `**text**` → bold, `_text_` → italic, `~~text~~` → strikethrough, `` `code` `` → inline code
 
 ### Тесты
-- [ ] SlashCommandPlugin: триггер, фильтрация, выбор блока, Escape
-- [ ] Markdown shortcuts: каждый паттерн трансформируется корректно
-- [ ] Контекстное меню: появляется при выделении, AI-действие для выделенного текста
+- [ ] SlashCommandPlugin: триггер, фильтрация, выбор блока, Escape — deferred
+- [ ] Markdown shortcuts: каждый паттерн трансформируется корректно — deferred
+- [ ] Floating toolbar: появляется при выделении, форматирование — deferred
 
 ---
 
