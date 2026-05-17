@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -5,14 +6,50 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
+import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin'
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
+import {
+  HEADING,
+  QUOTE,
+  CODE,
+  ORDERED_LIST,
+  UNORDERED_LIST,
+  BOLD_ITALIC_STAR,
+  BOLD_ITALIC_UNDERSCORE,
+  BOLD_STAR,
+  BOLD_UNDERSCORE,
+  ITALIC_STAR,
+  ITALIC_UNDERSCORE,
+  STRIKETHROUGH,
+  INLINE_CODE,
+} from '@lexical/markdown'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode } from '@lexical/link'
 import { CodeNode } from '@lexical/code'
 import type { EditorState } from 'lexical'
 import { AutoFocusPlugin } from './plugins/AutoFocusPlugin'
-import { InitialStatePlugin } from './plugins/InitialStatePlugin'
 import { ToolbarPlugin } from './plugins/ToolbarPlugin'
+import { SlashCommandPlugin } from './plugins/SlashCommandPlugin'
+import { FloatingToolbarPlugin } from './plugins/FloatingToolbarPlugin'
+import { DragDropPlugin } from './plugins/DragDropPlugin'
+
+const MD_TRANSFORMERS = [
+  HEADING,
+  QUOTE,
+  CODE,
+  ORDERED_LIST,
+  UNORDERED_LIST,
+  BOLD_ITALIC_STAR,
+  BOLD_ITALIC_UNDERSCORE,
+  BOLD_STAR,
+  BOLD_UNDERSCORE,
+  ITALIC_STAR,
+  ITALIC_UNDERSCORE,
+  STRIKETHROUGH,
+  INLINE_CODE,
+]
 
 const theme = {
   heading: {
@@ -26,7 +63,7 @@ const theme = {
     listitem: 'my-1',
   },
   quote: 'border-l-2 border-border pl-3.5 italic my-3 text-muted-foreground',
-  code: 'bg-muted font-mono text-[12px] rounded px-1 py-0.5',
+  code: 'block bg-muted/40 border border-border font-mono text-[13px] rounded-lg p-4 my-3 overflow-x-auto leading-relaxed whitespace-pre',
   text: {
     bold: 'font-semibold',
     italic: 'italic',
@@ -44,11 +81,14 @@ interface EditorProps {
 }
 
 export function Editor({ initialContent, onChange, editable = true }: EditorProps) {
+  const [editorContainer, setEditorContainer] = useState<HTMLDivElement | null>(null)
+
   const initialConfig = {
     namespace: 'ViniumEditor',
     theme,
     editable,
-    nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, CodeNode],
+    editorState: initialContent || undefined,
+    nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, CodeNode, HorizontalRuleNode],
     onError: (error: Error) => console.error(error),
   }
 
@@ -62,7 +102,7 @@ export function Editor({ initialContent, onChange, editable = true }: EditorProp
     <LexicalComposer initialConfig={initialConfig}>
       <div className="flex flex-col">
         {editable && <ToolbarPlugin />}
-        <div className="relative min-h-[400px]">
+        <div ref={setEditorContainer} className="relative min-h-[400px]">
           <RichTextPlugin
             contentEditable={
               <ContentEditable className="outline-none min-h-[400px] py-2 text-[15px] leading-relaxed text-foreground/90" />
@@ -77,8 +117,14 @@ export function Editor({ initialContent, onChange, editable = true }: EditorProp
         </div>
         <HistoryPlugin />
         <ListPlugin />
+        <HorizontalRulePlugin />
+        <MarkdownShortcutPlugin transformers={MD_TRANSFORMERS} />
         {editable && <AutoFocusPlugin />}
-        {initialContent && <InitialStatePlugin content={initialContent} />}
+        {editable && <SlashCommandPlugin />}
+        {editable && <FloatingToolbarPlugin />}
+        {editable && editorContainer && (
+          <DragDropPlugin anchorElem={editorContainer} />
+        )}
         <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
       </div>
     </LexicalComposer>

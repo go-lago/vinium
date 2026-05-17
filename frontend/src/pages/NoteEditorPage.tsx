@@ -271,6 +271,7 @@ export function NoteEditorPage() {
           {/* Lexical editor */}
           <div className="max-w-2xl">
             <Editor
+              key={note?.id ?? 'draft'}
               initialContent={note?.content ?? ''}
               onChange={handleContentChange}
             />
