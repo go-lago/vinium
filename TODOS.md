@@ -130,25 +130,148 @@ MCP server deferred to Phase 4.
 - [x] internal/ai: empty content_plain → 400, invalid action → 400, r.Context() cancel propagates
 - [x] Frontend: AIPanel state machine, AbortController cancel, rate-limit error message
 
-## DEFERRED
+---
+Updated: 2026-05-17
 
-- ❌ MCP server — Phase 4 (read+write, separate Go binary, content_plain write path, BYOK token)
-- ❌ Model selector UI — Phase 4 (model hardcoded per action in .env for now)
-- ❌ Streaming (SSE) — Phase 4
-- ❌ Selected text as AI input — Phase 4 (requires Lexical selection API)
-- ❌ Phase 4: News digest — cut (use Readwise/Feedly)
-- ❌ Contexts/workspaces system — Phase 6+
-- ❌ Tasks as entity — Phase 5+
-- ❌ Events, Reminders, Files, Contacts — Phase 6+
-- ❌ Graph/Relations model + Graph View — Phase 6+
-- ❌ Collections/Views/Queries — Phase 6+
-- ❌ Offline-first architecture — needs explicit design
+## COMPLETED PHASES SUMMARY
 
-## REVISED PHASE SEQUENCE
+- ✅ Phase 1: Auth (email + Google OAuth, JWT, refresh tokens)
+- ✅ Phase 2: Notes CRUD + Lexical editor + autosave
+- ✅ Phase 3a: P0 security + schema (content_plain, tags, soft delete, FTS)
+- ✅ Phase 3b: UI redesign (dark theme, icon sidebar, feed list, split editor)
+- ✅ Phase 3c: AI text actions (summarize/rephrase/expand) via OpenRouter server key
 
-- ✅ Phase 3a: P0 bugs + P1 schema + P2 architecture
-- ✅ Phase 3b: UI Redesign (vinium-workspace-3.html → production)
-- 🔜 Phase 3c (~1.5 weeks): BYOK AI text features + settings page
-- Phase 4 (~3 weeks): MCP server (read+write) + Note types (meeting, voice) + Voice → Note (Whisper)
-- Phase 5 (~3 weeks): Semantic search (embeddings) + Chat with personal context + Weekly review
-- Phase 6: Tasks entity + Integrations (Calendar, GitHub, Telegram) + Shared workspace
+---
+
+## Phase 4 — Богатый редактор (NEXT)
+
+Цель: редактор уровня Notion/AnyType — блочность, slash-команды, drag & drop, контекстное меню.
+
+### Slash-команды (/)
+- [ ] Плагин SlashCommandPlugin для Lexical — триггер на `/` в начале блока
+- [ ] Выпадающий список с поиском: Text, H1–H3, Quote, Code, Callout, Toggle, Divider, • List, 1. List
+- [ ] Навигация стрелками + Enter для выбора, Escape для закрытия
+- [ ] Fuzzy-фильтрация по мере ввода
+
+### Новые типы блоков
+- [ ] **Code block** — с выбором языка, моноширинный, синтаксис highlighting
+- [ ] **Quote** — блок цитаты с левой синей полосой
+- [ ] **Callout** — блок с иконкой (info / warning / tip), цветной фон
+- [ ] **Toggle** — сворачиваемый блок (заголовок + скрытый контент)
+- [ ] **Divider** — горизонтальный разделитель (`---`)
+
+### Drag & drop блоков
+- [ ] Drag handle (⠿) появляется при наведении слева от блока
+- [ ] Перетаскивание блока → смена порядка в Lexical
+- [ ] Визуальный индикатор места вставки
+
+### Контекстное меню (правая кнопка / floating toolbar)
+- [ ] Появляется при выделении текста (floating toolbar) или правом клике на блок
+- [ ] Форматирование: Bold / Italic / Underline / Strike / Code (inline) / Link
+- [ ] Тип блока: сменить на H1–H3 / Quote / Callout / Code
+- [ ] AI для выделенного: Перефразировать / Расширить / Сократить
+- [ ] Скопировать блок / Удалить блок
+
+### Markdown shortcuts
+- [ ] `#`, `##`, `###` + пробел → H1/H2/H3
+- [ ] `-` + пробел → bullet list
+- [ ] `1.` + пробел → numbered list
+- [ ] ` ``` ` → code block
+- [ ] `>` + пробел → quote
+- [ ] `---` → divider
+- [ ] `**text**` → bold, `_text_` → italic
+
+### Тесты
+- [ ] SlashCommandPlugin: триггер, фильтрация, выбор блока, Escape
+- [ ] Markdown shortcuts: каждый паттерн трансформируется корректно
+- [ ] Контекстное меню: появляется при выделении, AI-действие для выделенного текста
+
+---
+
+## Phase 5 — Tasks
+
+Цель: Task как первоклассная сущность рядом с Notes.
+
+### Backend
+- [ ] Модель Task: id, user_id, title, description, status (todo/in_progress/done/cancelled), priority (0–3), due_date, note_id (nullable FK)
+- [ ] CRUD: GET/POST /api/v1/tasks, GET/PUT/DELETE /api/v1/tasks/:id
+- [ ] Фильтрация: по статусу, приоритету, дедлайну, тексту
+- [ ] note_id — связь Task ↔ Note (опционально)
+
+### Frontend
+- [ ] /tasks — Linear-like список: колонки по статусу или flat list с фильтрами
+- [ ] Строка задачи: чекбокс статуса + заголовок + приоритет + дедлайн
+- [ ] Inline редактирование заголовка
+- [ ] Быстрое создание (⌘N / строка ввода вверху)
+- [ ] Иконка Tasks в боковом меню
+- [ ] В редакторе заметки: блок "Связанные задачи" — список задач, привязанных к заметке
+- [ ] Command Palette: создать задачу из ⌘K
+
+### Тесты
+- [ ] Backend: CRUD изоляция по user_id, фильтрация, статус-переходы
+- [ ] Frontend: создание, смена статуса, фильтрация
+
+---
+
+## Phase 6 — Contexts + Projects
+
+Цель: изолированные рабочие пространства и проекты как контейнеры.
+
+### Contexts
+- [ ] Модель Context: id, user_id, name, color, icon
+- [ ] Переключатель контекстов в боковом меню (Personal / Work / …)
+- [ ] Notes и Tasks принадлежат контексту (context_id FK)
+- [ ] Фильтрация всего по активному контексту
+
+### Projects
+- [ ] Модель Project: id, context_id, name, description, status
+- [ ] Проект содержит Notes + Tasks (project_id FK на обоих)
+- [ ] /projects — список проектов в контексте
+- [ ] Страница проекта: вкладки Notes / Tasks
+
+---
+
+## Phase 7 — Relations + Graph
+
+Цель: граф связей между сущностями, auto-linking через AI.
+
+### Backend
+- [ ] Модель Relation: id, from_id, from_type, to_id, to_type, relation_type (related_to / part_of / blocked_by / reference_of)
+- [ ] API: POST/DELETE /api/v1/relations, GET /api/v1/entities/:id/relations
+- [ ] AI auto-suggest: при сохранении заметки → найти похожие заметки/задачи (FTS + embedding)
+
+### Frontend
+- [ ] Панель "Связанные" в редакторе: список связей + кнопка "Добавить связь"
+- [ ] Graph View: визуализация узлов и рёбер (библиотека d3 или react-flow)
+- [ ] AI-подсказки: "Эта заметка похожа на X — связать?"
+
+---
+
+## Phase 8 — AI Feed + Voice + Intent
+
+Цель: проактивный AI-ассистент поверх всего контекста.
+
+### AI Feed
+- [ ] /feed — глобальная лента рекомендаций (приоритеты дня, незавершённые задачи, связи)
+- [ ] AI анализирует Notes + Tasks → предлагает действия с объяснением "почему"
+- [ ] Иконка Feed в боковом меню
+
+### Voice Input
+- [ ] Web Speech API (браузерный) → текст в редактор / создание заметки
+- [ ] Whisper через OpenRouter как fallback (для длинных записей)
+
+### Intent Classification
+- [ ] Пользователь пишет в Command Palette: "напомни позвонить Ане завтра"
+- [ ] AI классифицирует намерение → создаёт Task / Note / Reminder
+- [ ] Human-in-the-loop: предлагает, пользователь подтверждает
+
+---
+
+## DEFERRED (без конкретного срока)
+
+- Streaming (SSE) для AI ответов
+- MCP-сервер для подключения внешних AI-клиентов
+- Offline-first архитектура
+- Интеграции: Google Calendar, GitHub, Telegram
+- Shared workspace (командные заметки)
+- Semantic search (embeddings)

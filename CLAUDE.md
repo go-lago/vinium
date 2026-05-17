@@ -2,10 +2,14 @@
 
 ## Что это
 
-Vinium — персональное веб-приложение для работы со знаниями и заметками, усиленное AI.
-Основная идея: не ещё один таск-менеджер, а умный workspace который накапливает твой
-личный контекст и помогает им управлять — через голосовые заметки, ассистента встреч,
-дайджест новостей и открытый API для внешних агентов.
+Vinium — персональный AI workspace, объединяющий лучшее из **Linear** (структурность задач)
+и **Inkdrop/Notion** (блочные заметки), с единым AI-слоем поверх всего контекста пользователя.
+
+Цель — система, соединяющая **действия и знания**: заметки, задачи, события и контакты
+живут в одном пространстве, AI проактивно помогает ими управлять.
+
+Ключевые сущности: Note, Task, Event, Reminder, Contact — связаны графом отношений.
+Контексты (Personal, Work, …) изолируют данные; AI может работать со всеми контекстами.
 
 Проект строится поэтапно, каждая фаза — самостоятельная рабочая единица.
 
@@ -54,12 +58,16 @@ backend/
 ├── internal/
 │   ├── auth/           # JWT, OAuth, middleware
 │   ├── user/           # модель, репозиторий, хендлеры
-│   ├── note/           # модель, репозиторий, хендлеры (фаза 2)
-│   └── digest/         # дайджест новостей (фаза 3)
+│   ├── note/           # модель, репозиторий, хендлеры
+│   └── ai/             # AI actions handler + service
 ├── pkg/
 │   ├── database/       # инициализация GORM + PostgreSQL
 │   ├── config/         # загрузка конфига из env
-│   └── middleware/     # logging, cors, auth middleware
+│   ├── ctxutil/        # userID из context
+│   ├── lexical/        # ExtractPlainText из Lexical JSON
+│   ├── openrouter/     # HTTP-клиент OpenRouter
+│   ├── ratelimit/      # in-memory per-key rate limiter
+│   └── middleware/     # logging, cors
 ├── migrations/         # SQL миграции
 ├── .env.example
 └── go.mod
@@ -90,11 +98,11 @@ type RefreshToken struct {
 }
 ```
 
-### API эндпоинты (фаза 1)
+### API эндпоинты (текущий)
 
 ```
 POST   /api/v1/auth/register          # регистрация через email
-POST   /api/v1/auth/login             # вход через email
+POST   /api/v1/auth/login             # вход через email (rate-limited per IP)
 POST   /api/v1/auth/refresh           # обновление access token
 POST   /api/v1/auth/logout            # инвалидация refresh token
 GET    /api/v1/auth/google            # редирект на Google OAuth
@@ -102,6 +110,14 @@ GET    /api/v1/auth/google/callback   # колбэк от Google
 
 GET    /api/v1/me                     # данные текущего пользователя (protected)
 PUT    /api/v1/me                     # обновление профиля (protected)
+
+GET    /api/v1/notes                  # список заметок (paged, FTS search)
+POST   /api/v1/notes                  # создать заметку
+GET    /api/v1/notes/:id              # получить заметку
+PUT    /api/v1/notes/:id              # обновить заметку
+DELETE /api/v1/notes/:id              # удалить заметку
+
+POST   /api/v1/ai/action              # AI-действие над заметкой (summarize/rephrase/expand)
 ```
 
 ### Auth flow
@@ -158,58 +174,37 @@ frontend/
 
 ## Фазы разработки
 
-### ✅ Фаза 1 — Фундамент
-Цель: рабочее веб-приложение с аутентификацией.
-
-- [x] Инициализация проекта (backend + frontend)
-- [x] Docker Compose (PostgreSQL)
-- [x] Конфиг и подключение к БД
-- [x] User модель + миграция
-- [x] Email/Password auth (register, login, logout, refresh)
-- [x] Google OAuth
-- [x] Auth middleware (проверка JWT)
-- [x] Эндпоинт `/me`
-- [x] React приложение с роутингом
-- [x] Страницы Login / Register
-- [x] Dashboard для авторизованных пользователей
-- [x] Axios клиент с auto-refresh
+### ✅ Фаза 1 — Фундамент (auth)
+Email/Password + Google OAuth, JWT, защищённые роуты, axios auto-refresh.
 
 ### ✅ Фаза 2 — Заметки
-- [x] Note модель + CRUD API (backend)
-- [x] Rich Text редактор на базе **Lexical** (frontend)
-- [x] Тулбар: B, I, H1–H3, • список, 1. список
-- [x] `/notes` — отдельная страница со списком всех заметок
-- [x] `/notes/:id` — страница редактирования заметки
-- [x] Автосохранение (debounce 1.5 сек) со статусом saving/saved
-- [x] Фикс: google_id nullable (unique constraint при email-регистрации)
-- [ ] Markdown shortcuts (`#` → H1, `- ` → список, `**text**` → bold)
-- [ ] Поиск по заметкам на странице `/notes`
-- [ ] Preview текста в списке заметок (первые строки контента)
-- [ ] Закреплённые заметки вверху списка
-- [ ] Подсказки шорткатов в тулбаре (Ctrl+B, Ctrl+I)
+Note CRUD, Lexical editor, автосохранение, базовый тулбар.
 
-### 🔜 Фаза 3 — AI-фичи для заметок
-- Голос → заметка (Web Speech API / Whisper через OpenRouter)
-- Ассистент встречи: транскрипт → summary + задачи (OpenRouter LLM)
-- AI-улучшение текста: rephrase, summarize, expand (OpenRouter)
+### ✅ Фаза 3 — Качество + AI
+P0 security fixes, schema improvements, FTS-поиск, UI redesign (dark theme, icon sidebar),
+AI text actions (summarize / rephrase / expand) через OpenRouter server key.
 
-### 🔜 Фаза 4 — Дайджест новостей
-- Настройка тем и источников (RSS, GitHub releases, Hacker News)
-- Фоновый воркер (cron) для сбора контента
-- OpenRouter LLM для фильтрации и резюмирования
-- Ежедневный дайджест как заметка в workspace
+### 🔜 Фаза 4 — Богатый редактор
+Slash-команды (`/`) для выбора типа блока; новые блоки: code, quote, callout, toggle, divider;
+правая кнопка мыши → контекстное меню (форматирование + AI для выделенного текста);
+drag handles для перестановки блоков; markdown shortcuts.
 
-### 🔜 Фаза 5 — AI поверх данных
-- Семантический поиск по заметкам (embeddings, лёгкая локальная модель)
-- Chat с контекстом пользователя (OpenRouter)
-- Проактивные подсказки и связи между заметками
-- Weekly review — автоматическое summary недели (OpenRouter)
+### 🔜 Фаза 5 — Tasks
+Task как первоклассная сущность: статус, приоритет, дедлайн, assignee.
+Linear-like список задач. Связь Note ↔ Task.
 
-### 🔜 Фаза 6 — Открытая платформа
-- Public API (REST)
-- MCP-сервер — подключение к Claude, Cursor и другим AI-клиентам
-- Интеграции: Google Calendar, GitHub, Telegram
-- Shared workspace (командные заметки)
+### 🔜 Фаза 6 — Contexts + Projects
+Изолированные рабочие пространства (Personal / Work / …).
+Project как контейнер для Notes + Tasks + Events.
+
+### 🔜 Фаза 7 — Relations + Graph
+Граф связей между сущностями (related_to / part_of / blocked_by / reference_of).
+Auto-linking предложения от AI. Graph View (визуализация).
+
+### 🔜 Фаза 8 — AI Feed + Voice
+Проактивная лента рекомендаций. Голосовой ввод (Web Speech API / Whisper).
+Intent classification: текст → задача/заметка/напоминание.
+Smart reminders. Weekly review.
 
 ---
 
@@ -218,7 +213,7 @@ frontend/
 ```env
 # backend/.env
 DATABASE_URL=postgres://user:password@localhost:5432/vinium
-JWT_SECRET=your-secret-key-min-32-chars
+JWT_SECRET=your-secret-key-must-be-at-least-32-characters-long
 JWT_ACCESS_TTL=15m
 JWT_REFRESH_TTL=168h
 
@@ -226,11 +221,13 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URL=http://localhost:8080/api/v1/auth/google/callback
 
-OPENROUTER_API_KEY=        # для AI-фич (фаза 3+)
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_API_KEY=sk-or-...          # обязателен, без него сервер не стартует
+OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
+TRUST_PROXY=false
 
 FRONTEND_URL=http://localhost:5173
 PORT=8080
+COOKIE_SECURE=false
 ```
 
 ---
