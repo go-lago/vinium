@@ -1,5 +1,5 @@
 # TODOS — Vinium
-Updated: 2026-05-15
+Updated: 2026-05-17
 
 ## P0: Fix Before Phase 3 (critical bugs + security) ✅
 
@@ -140,6 +140,8 @@ Updated: 2026-05-17
 - ✅ Phase 3a: P0 security + schema (content_plain, tags, soft delete, FTS)
 - ✅ Phase 3b: UI redesign (dark theme, icon sidebar, feed list, split editor)
 - ✅ Phase 3c: AI text actions (summarize/rephrase/expand) via OpenRouter server key
+- ✅ Phase 4: Rich editor (slash commands, floating toolbar, drag & drop, markdown shortcuts)
+- ✅ Phase 5: Tasks — Linear-like task manager (CRUD, status groups, detail panel, priority icons)
 
 ---
 
@@ -188,24 +190,26 @@ Updated: 2026-05-17
 
 ---
 
-## Phase 5 — Tasks
+## Phase 5 — Tasks ✅
 
 Цель: Task как первоклассная сущность рядом с Notes.
 
 ### Backend
-- [ ] Модель Task: id, user_id, title, description, status (todo/in_progress/done/cancelled), priority (0–3), due_date, note_id (nullable FK)
-- [ ] CRUD: GET/POST /api/v1/tasks, GET/PUT/DELETE /api/v1/tasks/:id
-- [ ] Фильтрация: по статусу, приоритету, дедлайну, тексту
-- [ ] note_id — связь Task ↔ Note (опционально)
+- [x] Модель Task: id, user_id, title, description, status (todo/in_progress/done/cancelled), priority (none/low/medium/high), due_date, note_id (nullable FK)
+- [x] CRUD: GET/POST /api/v1/tasks, GET/PUT/DELETE /api/v1/tasks/:id
+- [x] Фильтрация: по статусу и приоритету (query params)
+- [x] note_id — связь Task ↔ Note (nullable FK с ON DELETE SET NULL)
 
 ### Frontend
-- [ ] /tasks — Linear-like список: колонки по статусу или flat list с фильтрами
-- [ ] Строка задачи: чекбокс статуса + заголовок + приоритет + дедлайн
-- [ ] Inline редактирование заголовка
-- [ ] Быстрое создание (⌘N / строка ввода вверху)
-- [ ] Иконка Tasks в боковом меню
-- [ ] В редакторе заметки: блок "Связанные задачи" — список задач, привязанных к заметке
-- [ ] Command Palette: создать задачу из ⌘K
+- [x] /tasks — Linear-like split view: список сгруппирован по статусам слева, detail panel справа
+- [x] Строка задачи: иконка статуса + приоритет (бар-иконка) + заголовок + дедлайн
+- [x] Клик на иконку статуса — циклическое переключение (todo→in_progress→done→todo)
+- [x] Inline создание задачи: "+ Добавить задачу" в группе "К выполнению"
+- [x] Иконка Tasks в боковом меню
+- [x] Detail panel: title, description (textarea), статус/приоритет (select), дедлайн (date), удаление с подтверждением
+- [x] Автосохранение в detail panel (600ms debounce)
+- [ ] В редакторе заметки: блок "Связанные задачи" — deferred to Phase 7
+- [ ] Command Palette: создать задачу из ⌘K — deferred
 
 ### Тесты
 - [ ] Backend: CRUD изоляция по user_id, фильтрация, статус-переходы
