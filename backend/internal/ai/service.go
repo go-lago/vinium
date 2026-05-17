@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/nkrus/vinium/pkg/lexical"
 )
@@ -47,6 +48,14 @@ func (s *Service) Run(ctx context.Context, action Action, lexicalJSON string) (s
 	}
 
 	plain := lexical.ExtractPlainText(lexicalJSON)
+	if plain == "" {
+		// If input is not JSON (i.e. plain text from floating toolbar selection),
+		// use it directly.
+		trimmed := strings.TrimSpace(lexicalJSON)
+		if len(trimmed) > 0 && trimmed[0] != '{' && trimmed[0] != '[' {
+			plain = trimmed
+		}
+	}
 	if plain == "" {
 		return "", ErrEmptyContent
 	}

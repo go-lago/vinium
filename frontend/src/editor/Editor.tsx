@@ -7,6 +7,7 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin'
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import {
@@ -118,6 +119,7 @@ export function Editor({ initialContent, onChange, editable = true }: EditorProp
         <HistoryPlugin />
         <ListPlugin />
         <HorizontalRulePlugin />
+        <LinkPlugin />
         <MarkdownShortcutPlugin transformers={MD_TRANSFORMERS} />
         {editable && <AutoFocusPlugin />}
         {editable && <SlashCommandPlugin />}
