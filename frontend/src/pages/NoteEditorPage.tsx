@@ -4,6 +4,7 @@ import { notesApi } from '@/api/notes'
 import type { Note } from '@/types'
 import { Editor } from '@/editor/Editor'
 import { formatDate } from '@/lib/format'
+import { AIPanel } from '@/components/AIPanel'
 
 const AUTOSAVE_DELAY = 1500
 
@@ -305,15 +306,7 @@ export function NoteEditorPage() {
             )}
           </div>
 
-          {/* Placeholder for future AI panel */}
-          <div>
-            <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-2">
-              AI
-            </p>
-            <p className="text-[11px] text-muted-foreground px-1.5 leading-relaxed">
-              AI-фичи появятся в следующей фазе
-            </p>
-          </div>
+          <AIPanel isDraft={isDraft} contentRef={contentRef} />
         </div>
       </div>
     </div>

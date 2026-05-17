@@ -21,6 +21,10 @@ type Config struct {
 	GoogleClientSecret string
 	GoogleRedirectURL  string
 
+	OpenRouterAPIKey string
+	OpenRouterModel  string
+	TrustProxy       bool
+
 	FrontendURL string
 	Port        string
 }
@@ -43,6 +47,11 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	openRouterKey := getEnv("OPENROUTER_API_KEY", "")
+	if openRouterKey == "" {
+		return nil, fmt.Errorf("OPENROUTER_API_KEY is required")
+	}
+
 	return &Config{
 		DatabaseURL:        getEnv("DATABASE_URL", ""),
 		JWTSecret:          jwtSecret,
@@ -52,6 +61,9 @@ func Load() (*Config, error) {
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 		GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", ""),
+		OpenRouterAPIKey:   openRouterKey,
+		OpenRouterModel:    getEnv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"),
+		TrustProxy:         getEnvBool("TRUST_PROXY", false),
 		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:5173"),
 		Port:               getEnv("PORT", "8080"),
 	}, nil

@@ -95,19 +95,47 @@ Updated: 2026-05-15
 
 ## NEXT: Phase 3c — AI Text Features
 
-- [ ] Backend: OpenRouter client (`pkg/openrouter/`) — POST /api/v1/ai/action
-- [ ] Backend: AI actions: summarize, rephrase, expand (request body: `{action, text, model?}`)
-- [ ] Backend: Rate limiting on AI endpoints (per-user, sliding window)
-- [ ] Frontend: AI pill buttons in editor sidebar (call /api/v1/ai/action)
-- [ ] Frontend: AI result shown inline in right sidebar (streaming or one-shot)
-- [ ] Frontend: Model selector in settings (default: free tier via OpenRouter)
-- [ ] MCP server (basic): list_notes, get_note, search_notes tools (read-only)
+Model: серверный ключ — `OPENROUTER_API_KEY` в .env; пользователи получают лимитированный доступ к AI.
+Без BYOK. Без хранения ключей пользователей. Нет ключа в .env — фича недоступна (500 при старте).
+MCP server deferred to Phase 4.
 
-## P0 Remaining
-- [ ] Rate limiting on /auth/login and /auth/register (per-IP, sliding window)
+### P0 Security ✅
+- [x] Rate limiting on /auth/login and /auth/register (per-IP, X-Forwarded-For + TRUST_PROXY config)
+- [x] http.Server timeouts: ReadTimeout:30s WriteTimeout:35s IdleTimeout:120s
+- [x] MaxBytesReader 512KB on AI action endpoint
+
+### Backend: Config & rate limiting ✅
+- [x] Config: add `OPENROUTER_API_KEY` (required, fail startup if empty)
+- [x] pkg/ratelimit/ — per-user sliding window 10 req/min + daily cap 20 req/день (in-memory, sweep goroutine)
+
+### Backend: AI actions ✅
+- [x] pkg/lexical/ — extract ExtractPlainText from note.Service (breaks ai→note coupling)
+- [x] pkg/openrouter/client.go — HTTP client, uses r.Context() as parent (30s timeout)
+- [x] internal/ai/ — handler + service: action enum (summarize/rephrase/expand), system prompts as constants, empty plaintext → 400
+
+### Frontend: AI panel in editor ✅
+- [x] src/api/ai.ts — aiApi.action(action, content)
+- [x] AIPanel component — state machine: idle → loading → success → error
+  - Buttons: Сводка / Перефразировать / Расширить (vertical stack, ghost+border, font-mono 11px)
+  - Section header: "AI — вся заметка"
+  - Disabled when isDraft=true OR content empty
+  - Loading: skeleton bars (animate-pulse, 3 lines)
+  - AbortController — cancel on new action click
+  - Success: result (Inter 12px, max-h-48 overflow-y-auto) + Copy button + Dismiss (×)
+  - Error: differentiated (timeout / rate-limit / server)
+- [x] Send contentRef.current (Lexical JSON) to backend; backend extracts plaintext
+
+### Tests ✅
+- [x] pkg/ratelimit: sliding window 10/min, daily cap 20/день, concurrency, no memory leak
+- [x] internal/ai: empty content_plain → 400, invalid action → 400, r.Context() cancel propagates
+- [x] Frontend: AIPanel state machine, AbortController cancel, rate-limit error message
 
 ## DEFERRED
 
+- ❌ MCP server — Phase 4 (read+write, separate Go binary, content_plain write path, BYOK token)
+- ❌ Model selector UI — Phase 4 (model hardcoded per action in .env for now)
+- ❌ Streaming (SSE) — Phase 4
+- ❌ Selected text as AI input — Phase 4 (requires Lexical selection API)
 - ❌ Phase 4: News digest — cut (use Readwise/Feedly)
 - ❌ Contexts/workspaces system — Phase 6+
 - ❌ Tasks as entity — Phase 5+
@@ -120,7 +148,7 @@ Updated: 2026-05-15
 
 - ✅ Phase 3a: P0 bugs + P1 schema + P2 architecture
 - ✅ Phase 3b: UI Redesign (vinium-workspace-3.html → production)
-- 🔜 Phase 3c (~2-3 weeks): AI text features (OpenRouter) + MCP server (read-only)
-- Phase 4 (~2 weeks): Note types (meeting, voice) + Voice → Note (Whisper)
+- 🔜 Phase 3c (~1.5 weeks): BYOK AI text features + settings page
+- Phase 4 (~3 weeks): MCP server (read+write) + Note types (meeting, voice) + Voice → Note (Whisper)
 - Phase 5 (~3 weeks): Semantic search (embeddings) + Chat with personal context + Weekly review
 - Phase 6: Tasks entity + Integrations (Calendar, GitHub, Telegram) + Shared workspace

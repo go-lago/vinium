@@ -3,9 +3,9 @@ package note
 import (
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/google/uuid"
+	"github.com/nkrus/vinium/pkg/lexical"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -52,7 +52,7 @@ func (s *Service) Create(in CreateInput) (*Note, error) {
 		UserID:       in.UserID,
 		Title:        in.Title,
 		Content:      in.Content,
-		ContentPlain: s.ExtractPlainText(in.Content),
+		ContentPlain: lexical.ExtractPlainText(in.Content),
 		Type:         noteType,
 		Tags:         marshalTags(in.Tags),
 		Metadata:     marshalMetadata(in.LexicalVersion),
@@ -91,7 +91,7 @@ func (s *Service) Update(id, userID uuid.UUID, in UpdateInput) (*Note, error) {
 	}
 	n.Title = in.Title
 	n.Content = in.Content
-	n.ContentPlain = s.ExtractPlainText(in.Content)
+	n.ContentPlain = lexical.ExtractPlainText(in.Content)
 	n.IsPinned = in.IsPinned
 	n.Tags = marshalTags(in.Tags)
 	if in.NoteType != "" {
@@ -110,39 +110,6 @@ func (s *Service) Delete(id, userID uuid.UUID) error {
 	return s.repo.Delete(id, userID)
 }
 
-// ExtractPlainText walks the Lexical JSON tree and returns concatenated text content.
-func (s *Service) ExtractPlainText(content string) string {
-	if content == "" {
-		return ""
-	}
-	var doc map[string]any
-	if err := json.Unmarshal([]byte(content), &doc); err != nil {
-		return ""
-	}
-	var buf strings.Builder
-	root, _ := doc["root"].(map[string]any)
-	collectText(root, &buf)
-	return strings.TrimSpace(buf.String())
-}
-
-func collectText(node map[string]any, buf *strings.Builder) {
-	if node == nil {
-		return
-	}
-	if nodeType, _ := node["type"].(string); nodeType == "text" {
-		if text, _ := node["text"].(string); text != "" {
-			buf.WriteString(text)
-			buf.WriteByte(' ')
-		}
-		return
-	}
-	children, _ := node["children"].([]any)
-	for _, child := range children {
-		if m, ok := child.(map[string]any); ok {
-			collectText(m, buf)
-		}
-	}
-}
 
 func marshalTags(tags []string) datatypes.JSON {
 	if tags == nil {

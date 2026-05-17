@@ -81,50 +81,6 @@ func (m *mockRepo) Delete(id uuid.UUID, userID uuid.UUID) error {
 	return nil
 }
 
-// ── ExtractPlainText ─────────────────────────────────────────────────────────
-
-func TestExtractPlainText(t *testing.T) {
-	svc := note.NewService(newMockRepo())
-
-	cases := []struct {
-		name string
-		json string
-		want string
-	}{
-		{"empty", "", ""},
-		{"invalid json", "not-json", ""},
-		{
-			"simple paragraph",
-			`{"root":{"type":"root","children":[{"type":"paragraph","children":[{"type":"text","text":"Hello world"}]}]}}`,
-			"Hello world",
-		},
-		{
-			"multiple paragraphs",
-			`{"root":{"type":"root","children":[` +
-				`{"type":"paragraph","children":[{"type":"text","text":"First"}]},` +
-				`{"type":"paragraph","children":[{"type":"text","text":"Second"}]}` +
-				`]}}`,
-			"First Second",
-		},
-		{
-			"nested nodes",
-			`{"root":{"type":"root","children":[{"type":"paragraph","children":[` +
-				`{"type":"text","text":"A"},{"type":"text","text":"B"}` +
-				`]}]}}`,
-			"A B",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := svc.ExtractPlainText(tc.json)
-			if got != tc.want {
-				t.Errorf("ExtractPlainText() = %q, want %q", got, tc.want)
-			}
-		})
-	}
-}
-
 // ── Cross-user isolation ─────────────────────────────────────────────────────
 
 func TestGetByID_CrossUserDenied(t *testing.T) {
