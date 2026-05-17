@@ -60,6 +60,8 @@ export interface Task {
   priority: TaskPriority
   due_date: string | null
   note_id: string | null
+  context_id: string | null
+  project_id: string | null
   created_at: string
   updated_at: string
 }
@@ -71,6 +73,8 @@ export interface CreateTaskRequest {
   priority?: TaskPriority
   due_date?: string | null
   note_id?: string | null
+  context_id?: string | null
+  project_id?: string | null
 }
 
 export interface UpdateTaskRequest {

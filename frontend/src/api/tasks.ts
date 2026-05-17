@@ -2,7 +2,7 @@ import apiClient from './client'
 import type { Task, CreateTaskRequest, UpdateTaskRequest } from '@/types'
 
 export const tasksApi = {
-  list: (params?: { status?: string; priority?: string }) =>
+  list: (params?: { status?: string; priority?: string; context_id?: string; project_id?: string }) =>
     apiClient.get<Task[]>('/tasks', { params }),
 
   get: (id: string) =>

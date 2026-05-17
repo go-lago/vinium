@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useContextStore } from '@/store/contextStore'
 import { projectsApi } from '@/api/projects'
 import type { Project } from '@/types'
@@ -100,7 +101,10 @@ function CreateProjectModal({ contextId, onClose, onCreate }: CreateModalProps) 
 }
 
 function ProjectCard({ project, onArchive }: { project: Project; onArchive: (id: string) => void }) {
-  const handleArchive = async () => {
+  const navigate = useNavigate()
+
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.stopPropagation()
     try {
       await projectsApi.update(project.id, {
         name: project.name,
@@ -116,7 +120,10 @@ function ProjectCard({ project, onArchive }: { project: Project; onArchive: (id:
   }
 
   return (
-    <div className="group relative rounded-xl border bg-card p-4 hover:border-primary/50 transition-colors">
+    <div
+      className="group relative rounded-xl border bg-card p-4 hover:border-primary/50 transition-colors cursor-pointer"
+      onClick={() => navigate(`/projects/${project.id}`)}
+    >
       <div
         className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 text-xl"
         style={{ background: project.color + '22' }}

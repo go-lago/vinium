@@ -79,24 +79,52 @@ const navItems = [
   { icon: <IconProjects />, to: '/projects', label: 'Проекты', end: false },
 ]
 
+const CONTEXT_COLORS = ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6']
+
 function ContextSwitcher() {
   const { contexts, activeContextId, setContexts, setActiveContext } = useContextStore()
   const [open, setOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState(CONTEXT_COLORS[0])
+  const [saving, setSaving] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    contextsApi.list().then((r) => setContexts(r.data)).catch(() => {})
-  }, [setContexts])
+  const reload = () => contextsApi.list().then((r) => setContexts(r.data)).catch(() => {})
+
+  useEffect(() => { reload() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setCreating(false)
+        setNewName('')
+      }
     }
     if (open) document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [open])
 
   const active = contexts.find((c) => c.id === activeContextId)
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newName.trim()) return
+    setSaving(true)
+    try {
+      const res = await contextsApi.create({ name: newName.trim(), color: newColor, icon: '🌐' })
+      await reload()
+      setActiveContext(res.data.id)
+      setCreating(false)
+      setNewName('')
+      setOpen(false)
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div ref={ref} className="relative">
@@ -109,7 +137,7 @@ function ContextSwitcher() {
         {active?.icon ?? '🌐'}
       </button>
       {open && (
-        <div className="absolute left-9 bottom-0 z-50 min-w-[160px] rounded-lg border bg-popover shadow-lg p-1">
+        <div className="absolute left-9 bottom-0 z-50 min-w-[190px] rounded-lg border bg-popover shadow-lg p-1">
           {contexts.map((c: Context) => (
             <button
               key={c.id}
@@ -121,10 +149,71 @@ function ContextSwitcher() {
                   : 'hover:bg-accent text-muted-foreground hover:text-foreground',
               )}
             >
-              <span>{c.icon}</span>
-              <span className="truncate">{c.name}</span>
+              <span
+                className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
+                style={{ background: c.color + '33' }}
+              >
+                {c.icon}
+              </span>
+              <span className="truncate flex-1">{c.name}</span>
+              {c.is_default && (
+                <span className="text-[9px] text-muted-foreground">по умолч.</span>
+              )}
             </button>
           ))}
+          <div className="border-t mt-1 pt-1">
+            {creating ? (
+              <form onSubmit={handleCreate} className="px-1 pb-1">
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Название"
+                  className="w-full rounded border bg-background px-2 py-1 text-xs outline-none focus:ring-1 ring-primary mb-1.5"
+                />
+                <div className="flex gap-1 mb-1.5">
+                  {CONTEXT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewColor(c)}
+                      className="w-4 h-4 rounded-full transition-transform"
+                      style={{
+                        background: c,
+                        outline: c === newColor ? `2px solid ${c}` : 'none',
+                        outlineOffset: '1px',
+                        transform: c === newColor ? 'scale(1.2)' : 'scale(1)',
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setCreating(false); setNewName('') }}
+                    className="flex-1 py-1 text-[11px] rounded border hover:bg-accent transition-colors"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving || !newName.trim()}
+                    className="flex-1 py-1 text-[11px] rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    Создать
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                onClick={() => setCreating(true)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                <span className="text-base leading-none">+</span>
+                <span>Новый контекст</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
