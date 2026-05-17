@@ -87,13 +87,12 @@ export function FloatingToolbarPlugin() {
   }, [updatePosition])
 
   useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-        setPosition(null)
-      }
-    }
-    document.addEventListener('mousedown', handleMouseDown)
-    return () => document.removeEventListener('mousedown', handleMouseDown)
+    const hide = () => setPosition(null)
+    document.addEventListener('mousedown', (e: MouseEvent) => {
+      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) hide()
+    })
+    window.addEventListener('scroll', hide, { passive: true, capture: true })
+    return () => window.removeEventListener('scroll', hide, { capture: true })
   }, [])
 
   const Btn = ({

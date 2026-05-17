@@ -1,16 +1,11 @@
 import { useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { DraggableBlockPlugin_EXPERIMENTAL } from '@lexical/react/LexicalDraggableBlockPlugin'
 
-interface DragDropPluginProps {
-  anchorElem?: HTMLElement
-}
-
-export function DragDropPlugin({ anchorElem = document.body }: DragDropPluginProps) {
+export function DragDropPlugin({ anchorElem }: { anchorElem: HTMLElement }) {
   const menuRef = useRef<HTMLDivElement>(null)
   const targetLineRef = useRef<HTMLDivElement>(null)
 
-  return createPortal(
+  return (
     <DraggableBlockPlugin_EXPERIMENTAL
       anchorElem={anchorElem}
       menuRef={menuRef}
@@ -20,13 +15,17 @@ export function DragDropPlugin({ anchorElem = document.body }: DragDropPluginPro
           ref={menuRef}
           style={{
             position: 'absolute',
+            left: 0,
+            top: 0,
             opacity: 0,
             cursor: 'grab',
-            padding: '2px 6px',
+            padding: '2px 4px',
+            borderRadius: '4px',
             color: 'var(--muted-foreground)',
             fontSize: '14px',
-            borderRadius: '4px',
             userSelect: 'none',
+            display: 'flex',
+            alignItems: 'center',
           }}
         >
           ⠿
@@ -37,18 +36,17 @@ export function DragDropPlugin({ anchorElem = document.body }: DragDropPluginPro
           ref={targetLineRef}
           style={{
             position: 'absolute',
+            left: 0,
+            top: 0,
             height: '2px',
             background: 'hsl(var(--primary))',
             opacity: 0,
-            left: 0,
-            right: 0,
             pointerEvents: 'none',
             borderRadius: '2px',
           }}
         />
       }
       isOnMenu={(element) => menuRef.current?.contains(element) ?? false}
-    />,
-    anchorElem,
+    />
   )
 }

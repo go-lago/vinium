@@ -102,13 +102,13 @@ export function Editor({ initialContent, onChange, editable = true }: EditorProp
     <LexicalComposer initialConfig={initialConfig}>
       <div className="flex flex-col">
         {editable && <ToolbarPlugin />}
-        <div ref={setEditorContainer} className="relative min-h-[400px]">
+        <div ref={setEditorContainer} className="relative min-h-[200px] pl-7">
           <RichTextPlugin
             contentEditable={
-              <ContentEditable className="outline-none min-h-[400px] py-2 text-[15px] leading-relaxed text-foreground/90" />
+              <ContentEditable className="outline-none min-h-[200px] py-2 text-[15px] leading-relaxed text-foreground/90" />
             }
             placeholder={
-              <div className="absolute top-2 left-0 text-muted-foreground pointer-events-none select-none">
+              <div className="absolute top-2 left-7 text-muted-foreground pointer-events-none select-none">
                 Начни писать...
               </div>
             }

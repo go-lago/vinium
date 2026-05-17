@@ -127,6 +127,37 @@ export function ToolbarPlugin() {
 
   const Sep = () => <div className="w-px h-5 bg-border mx-1" />
 
+  const IconBulletList = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="2.5" cy="4.5" r="1.25" fill="currentColor" />
+      <line x1="5.5" y1="4.5" x2="14" y2="4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="2.5" cy="8" r="1.25" fill="currentColor" />
+      <line x1="5.5" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="2.5" cy="11.5" r="1.25" fill="currentColor" />
+      <line x1="5.5" y1="11.5" x2="14" y2="11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+
+  const IconOrderedList = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <text x="1" y="6" fontSize="5" fontWeight="700" fill="currentColor" fontFamily="monospace">1.</text>
+      <line x1="6" y1="4.5" x2="14" y2="4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <text x="1" y="9.5" fontSize="5" fontWeight="700" fill="currentColor" fontFamily="monospace">2.</text>
+      <line x1="6" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <text x="1" y="13" fontSize="5" fontWeight="700" fill="currentColor" fontFamily="monospace">3.</text>
+      <line x1="6" y1="11.5" x2="14" y2="11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+
+  const IconBlockquote = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="1.5" y="2.5" width="2.5" height="11" rx="1.25" fill="currentColor" />
+      <line x1="6.5" y1="5" x2="14" y2="5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="6.5" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="6.5" y1="11" x2="14" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+
   return (
     <div className="flex items-center gap-0.5 flex-wrap border-b pb-2 mb-4">
       <Btn active={isBold} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')} title="Жирный"><span className="font-bold">B</span></Btn>
@@ -138,11 +169,11 @@ export function ToolbarPlugin() {
       <Btn active={blockType === 'h2'} onClick={() => setHeading('h2')}>H2</Btn>
       <Btn active={blockType === 'h3'} onClick={() => setHeading('h3')}>H3</Btn>
       <Sep />
-      <Btn active={blockType === 'quote'} onClick={setQuote} title="Цитата">"</Btn>
+      <Btn active={blockType === 'quote'} onClick={setQuote} title="Цитата"><IconBlockquote /></Btn>
       <Btn active={blockType === 'code'} onClick={setCode} title="Блок кода">&lt;/&gt;</Btn>
       <Sep />
-      <Btn active={blockType === 'ul'} onClick={() => toggleList('ul')} title="Маркированный список">• Список</Btn>
-      <Btn active={blockType === 'ol'} onClick={() => toggleList('ol')} title="Нумерованный список">1. Список</Btn>
+      <Btn active={blockType === 'ul'} onClick={() => toggleList('ul')} title="Маркированный список"><IconBulletList /></Btn>
+      <Btn active={blockType === 'ol'} onClick={() => toggleList('ol')} title="Нумерованный список"><IconOrderedList /></Btn>
     </div>
   )
 }
