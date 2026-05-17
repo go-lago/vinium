@@ -172,8 +172,8 @@ Updated: 2026-05-17
 - [x] Появляется при выделении текста
 - [x] Форматирование: Bold / Italic / Underline / Strike / Code (inline)
 - [x] Тип блока: H1–H3 / Quote
-- [ ] Link — deferred
-- [ ] AI для выделенного: Перефразировать / Расширить / Сократить — deferred
+- [x] Link — TOGGLE_LINK_COMMAND, inline URL input, detect/remove existing
+- [x] AI для выделенного: Перефразировать / Расширить / Сжать (plain text → backend)
 - [ ] Скопировать блок / Удалить блок — deferred
 
 ### Markdown shortcuts
@@ -214,7 +214,7 @@ Updated: 2026-05-17
 - [ ] Command Palette: создать задачу из ⌘K — deferred
 
 ### Тесты
-- [ ] Backend: CRUD изоляция по user_id, фильтрация, статус-переходы
+- [x] Backend: CRUD изоляция по user_id, фильтрация, статус-переходы, due_date (8 тестов)
 - [ ] Frontend: создание, смена статуса, фильтрация
 
 ---
