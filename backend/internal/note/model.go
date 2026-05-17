@@ -19,6 +19,8 @@ type Note struct {
 	Tags           datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"tags"`
 	Metadata       datatypes.JSON `gorm:"type:jsonb;default:'{}'" json:"metadata,omitempty"`
 	IsPinned       bool           `gorm:"default:false" json:"is_pinned"`
+	ContextID      *uuid.UUID     `gorm:"type:uuid" json:"context_id"`
+	ProjectID      *uuid.UUID     `gorm:"type:uuid" json:"project_id"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`

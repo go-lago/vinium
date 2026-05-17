@@ -81,3 +81,29 @@ export interface UpdateTaskRequest {
   due_date: string | null
   note_id: string | null
 }
+
+export interface Context {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  icon: string
+  is_default: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Project {
+  id: string
+  context_id: string
+  user_id: string
+  name: string
+  description: string
+  status: 'active' | 'archived'
+  color: string
+  icon: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}

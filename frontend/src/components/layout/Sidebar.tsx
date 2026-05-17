@@ -1,7 +1,10 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useContextStore } from '@/store/contextStore'
+import { contextsApi } from '@/api/contexts'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import type { Context } from '@/types'
 
 function IconNotes() {
   return (
@@ -42,6 +45,17 @@ function IconTasks() {
   )
 }
 
+function IconProjects() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-4 h-4">
+      <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"/>
+      <rect x="9" y="1.5" width="5.5" height="5.5" rx="1"/>
+      <rect x="1.5" y="9" width="5.5" height="5.5" rx="1"/>
+      <rect x="9" y="9" width="5.5" height="5.5" rx="1"/>
+    </svg>
+  )
+}
+
 function IconMoon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
@@ -62,7 +76,60 @@ const navItems = [
   { icon: <IconHome />, to: '/', label: 'Dashboard', end: true },
   { icon: <IconNotes />, to: '/notes', label: 'Заметки', end: false },
   { icon: <IconTasks />, to: '/tasks', label: 'Задачи', end: false },
+  { icon: <IconProjects />, to: '/projects', label: 'Проекты', end: false },
 ]
+
+function ContextSwitcher() {
+  const { contexts, activeContextId, setContexts, setActiveContext } = useContextStore()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    contextsApi.list().then((r) => setContexts(r.data)).catch(() => {})
+  }, [setContexts])
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [open])
+
+  const active = contexts.find((c) => c.id === activeContextId)
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title={active?.name ?? 'Контекст'}
+        className="w-7 h-7 flex items-center justify-center rounded-md text-xs font-semibold hover:bg-accent transition-colors select-none"
+        style={{ background: active ? active.color + '33' : undefined, color: active?.color }}
+      >
+        {active?.icon ?? '🌐'}
+      </button>
+      {open && (
+        <div className="absolute left-9 bottom-0 z-50 min-w-[160px] rounded-lg border bg-popover shadow-lg p-1">
+          {contexts.map((c: Context) => (
+            <button
+              key={c.id}
+              onClick={() => { setActiveContext(c.id); setOpen(false) }}
+              className={cn(
+                'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left transition-colors',
+                c.id === activeContextId
+                  ? 'bg-accent text-foreground'
+                  : 'hover:bg-accent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <span>{c.icon}</span>
+              <span className="truncate">{c.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Sidebar() {
   const { logout } = useAuth()
@@ -113,10 +180,12 @@ export function Sidebar() {
 
       <div className="flex-1" />
 
+      <ContextSwitcher />
+
       <button
         onClick={toggleTheme}
         title={dark ? 'Светлая тема' : 'Тёмная тема'}
-        className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-1"
+        className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-1 mt-1"
       >
         {dark ? <IconSun /> : <IconMoon />}
       </button>

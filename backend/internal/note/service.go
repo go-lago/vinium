@@ -25,6 +25,8 @@ type CreateInput struct {
 	Tags           []string
 	NoteType       string
 	LexicalVersion string
+	ContextID      *uuid.UUID
+	ProjectID      *uuid.UUID
 }
 
 type UpdateInput struct {
@@ -34,13 +36,17 @@ type UpdateInput struct {
 	Tags           []string
 	NoteType       string
 	LexicalVersion string
+	ContextID      *uuid.UUID
+	ProjectID      *uuid.UUID
 }
 
 type ListInput struct {
-	UserID  uuid.UUID
-	Page    int
-	PerPage int
-	Query   string
+	UserID    uuid.UUID
+	Page      int
+	PerPage   int
+	Query     string
+	ContextID string
+	ProjectID string
 }
 
 func (s *Service) Create(in CreateInput) (*Note, error) {
@@ -56,6 +62,8 @@ func (s *Service) Create(in CreateInput) (*Note, error) {
 		Type:         noteType,
 		Tags:         marshalTags(in.Tags),
 		Metadata:     marshalMetadata(in.LexicalVersion),
+		ContextID:    in.ContextID,
+		ProjectID:    in.ProjectID,
 	}
 	if err := s.repo.Create(n); err != nil {
 		return nil, err
@@ -78,10 +86,11 @@ func (s *Service) GetByID(id, userID uuid.UUID) (*Note, error) {
 }
 
 func (s *Service) List(in ListInput) ([]NoteSummary, error) {
+	filter := ListFilter{ContextID: in.ContextID, ProjectID: in.ProjectID}
 	if in.Query != "" {
-		return s.repo.Search(in.UserID, in.Query, in.Page, in.PerPage)
+		return s.repo.Search(in.UserID, in.Query, in.Page, in.PerPage, filter)
 	}
-	return s.repo.FindSummaryByUserID(in.UserID, in.Page, in.PerPage)
+	return s.repo.FindSummaryByUserID(in.UserID, in.Page, in.PerPage, filter)
 }
 
 func (s *Service) Update(id, userID uuid.UUID, in UpdateInput) (*Note, error) {
@@ -99,6 +108,12 @@ func (s *Service) Update(id, userID uuid.UUID, in UpdateInput) (*Note, error) {
 	}
 	if in.LexicalVersion != "" {
 		n.Metadata = marshalMetadata(in.LexicalVersion)
+	}
+	if in.ContextID != nil {
+		n.ContextID = in.ContextID
+	}
+	if in.ProjectID != nil {
+		n.ProjectID = in.ProjectID
 	}
 	if err := s.repo.Update(n); err != nil {
 		return nil, err

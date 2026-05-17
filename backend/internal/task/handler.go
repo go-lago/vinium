@@ -20,12 +20,14 @@ func NewHandler(svc *Service) *Handler {
 }
 
 type taskRequest struct {
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Status      Status    `json:"status"`
-	Priority    Priority  `json:"priority"`
-	DueDate     *string   `json:"due_date"`
-	NoteID      *string   `json:"note_id"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Status      Status   `json:"status"`
+	Priority    Priority `json:"priority"`
+	DueDate     *string  `json:"due_date"`
+	NoteID      *string  `json:"note_id"`
+	ContextID   *string  `json:"context_id"`
+	ProjectID   *string  `json:"project_id"`
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -49,8 +51,10 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	filter := ListFilter{
-		Status:   r.URL.Query().Get("status"),
-		Priority: r.URL.Query().Get("priority"),
+		Status:    r.URL.Query().Get("status"),
+		Priority:  r.URL.Query().Get("priority"),
+		ContextID: r.URL.Query().Get("context_id"),
+		ProjectID: r.URL.Query().Get("project_id"),
 	}
 	tasks, err := h.svc.List(uid, filter)
 	if err != nil {
@@ -81,6 +85,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		Priority:    req.Priority,
 		DueDate:     parseDueDate(req.DueDate),
 		NoteID:      parseNoteID(req.NoteID),
+		ContextID:   parseNoteID(req.ContextID),
+		ProjectID:   parseNoteID(req.ProjectID),
 	}
 	t, err := h.svc.Create(in)
 	if err != nil {
@@ -137,6 +143,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		Priority:    req.Priority,
 		DueDate:     parseDueDate(req.DueDate),
 		NoteID:      parseNoteID(req.NoteID),
+		ContextID:   parseNoteID(req.ContextID),
+		ProjectID:   parseNoteID(req.ProjectID),
 	})
 	if err != nil {
 		if errors.Is(err, ErrTaskNotFound) {

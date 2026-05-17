@@ -9,11 +9,16 @@ import (
 
 var ErrNoteNotFound = errors.New("note not found")
 
+type ListFilter struct {
+	ContextID string
+	ProjectID string
+}
+
 type Repository interface {
 	Create(n *Note) error
 	FindByID(id uuid.UUID) (*Note, error)
-	FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([]NoteSummary, error)
-	Search(userID uuid.UUID, query string, page, perPage int) ([]NoteSummary, error)
+	FindSummaryByUserID(userID uuid.UUID, page, perPage int, filter ListFilter) ([]NoteSummary, error)
+	Search(userID uuid.UUID, query string, page, perPage int, filter ListFilter) ([]NoteSummary, error)
 	Update(n *Note) error
 	Delete(id uuid.UUID, userID uuid.UUID) error
 }
@@ -39,34 +44,46 @@ func (r *repository) FindByID(id uuid.UUID) (*Note, error) {
 	return &n, err
 }
 
-func (r *repository) FindSummaryByUserID(userID uuid.UUID, page, perPage int) ([]NoteSummary, error) {
+func (r *repository) FindSummaryByUserID(userID uuid.UUID, page, perPage int, filter ListFilter) ([]NoteSummary, error) {
 	page, perPage = clampPage(page, perPage)
 	summaries := make([]NoteSummary, 0)
-	err := r.db.Model(&Note{}).
+	q := r.db.Model(&Note{}).
 		Select("id, user_id, title, content_plain, content_version, type, tags, is_pinned, created_at, updated_at").
-		Where("user_id = ?", userID).
-		Order("is_pinned DESC, updated_at DESC").
+		Where("user_id = ?", userID)
+	q = applyNoteFilter(q, filter)
+	err := q.Order("is_pinned DESC, updated_at DESC").
 		Limit(perPage).
 		Offset((page - 1) * perPage).
 		Scan(&summaries).Error
 	return summaries, err
 }
 
-func (r *repository) Search(userID uuid.UUID, query string, page, perPage int) ([]NoteSummary, error) {
+func (r *repository) Search(userID uuid.UUID, query string, page, perPage int, filter ListFilter) ([]NoteSummary, error) {
 	page, perPage = clampPage(page, perPage)
 	summaries := make([]NoteSummary, 0)
-	err := r.db.Model(&Note{}).
+	q := r.db.Model(&Note{}).
 		Select("id, user_id, title, content_plain, content_version, type, tags, is_pinned, created_at, updated_at").
 		Where("user_id = ?", userID).
 		Where(
 			"to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(content_plain,'')) @@ plainto_tsquery('simple', ?)",
 			query,
-		).
-		Order("is_pinned DESC, updated_at DESC").
+		)
+	q = applyNoteFilter(q, filter)
+	err := q.Order("is_pinned DESC, updated_at DESC").
 		Limit(perPage).
 		Offset((page - 1) * perPage).
 		Scan(&summaries).Error
 	return summaries, err
+}
+
+func applyNoteFilter(q *gorm.DB, filter ListFilter) *gorm.DB {
+	if filter.ContextID != "" {
+		q = q.Where("context_id = ?", filter.ContextID)
+	}
+	if filter.ProjectID != "" {
+		q = q.Where("project_id = ?", filter.ProjectID)
+	}
+	return q
 }
 
 func (r *repository) Update(n *Note) error {

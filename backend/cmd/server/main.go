@@ -13,7 +13,9 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/nkrus/vinium/internal/ai"
 	"github.com/nkrus/vinium/internal/auth"
+	appctx "github.com/nkrus/vinium/internal/context"
 	"github.com/nkrus/vinium/internal/note"
+	"github.com/nkrus/vinium/internal/project"
 	"github.com/nkrus/vinium/internal/task"
 	"github.com/nkrus/vinium/internal/user"
 	"github.com/nkrus/vinium/pkg/config"
@@ -34,7 +36,11 @@ func main() {
 		log.Fatalf("database: %v", err)
 	}
 
-	if err := db.AutoMigrate(&user.User{}, &user.RefreshToken{}, &note.Note{}, &task.Task{}); err != nil {
+	if err := db.AutoMigrate(
+		&user.User{}, &user.RefreshToken{},
+		&appctx.Context{}, &project.Project{},
+		&note.Note{}, &task.Task{},
+	); err != nil {
 		log.Fatalf("migrate: %v", err)
 	}
 
@@ -50,6 +56,14 @@ func main() {
 	taskRepo := task.NewRepository(db)
 	taskSvc := task.NewService(taskRepo)
 	taskHandler := task.NewHandler(taskSvc)
+
+	ctxRepo := appctx.NewRepository(db)
+	ctxSvc := appctx.NewService(ctxRepo)
+	ctxHandler := appctx.NewHandler(ctxSvc)
+
+	projRepo := project.NewRepository(db)
+	projSvc := project.NewService(projRepo)
+	projHandler := project.NewHandler(projSvc)
 
 	orClient := openrouter.New(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
 	aiSvc := ai.NewService(orClient)
@@ -108,6 +122,24 @@ func main() {
 			})
 
 			r.Post("/ai/action", aiHandler.Action)
+
+			r.Route("/contexts", func(r chi.Router) {
+				r.Get("/", ctxHandler.List)
+				r.Post("/", ctxHandler.Create)
+				r.Get("/{id}", ctxHandler.Get)
+				r.Put("/{id}", ctxHandler.Update)
+				r.Delete("/{id}", ctxHandler.Delete)
+				r.Route("/{contextId}/projects", func(r chi.Router) {
+					r.Get("/", projHandler.ListByContext)
+				})
+			})
+
+			r.Route("/projects", func(r chi.Router) {
+				r.Post("/", projHandler.Create)
+				r.Get("/{id}", projHandler.Get)
+				r.Put("/{id}", projHandler.Update)
+				r.Delete("/{id}", projHandler.Delete)
+			})
 		})
 	})
 

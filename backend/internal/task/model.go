@@ -31,6 +31,8 @@ type Task struct {
 	Priority    Priority       `gorm:"not null;default:'none'" json:"priority"`
 	DueDate     *time.Time     `json:"due_date"`
 	NoteID      *uuid.UUID     `gorm:"type:uuid" json:"note_id"`
+	ContextID   *uuid.UUID     `gorm:"type:uuid" json:"context_id"`
+	ProjectID   *uuid.UUID     `gorm:"type:uuid" json:"project_id"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

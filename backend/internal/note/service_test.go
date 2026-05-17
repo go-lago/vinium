@@ -43,7 +43,7 @@ func (m *mockRepo) FindByID(id uuid.UUID) (*note.Note, error) {
 	return &cp, nil
 }
 
-func (m *mockRepo) FindSummaryByUserID(userID uuid.UUID, _, _ int) ([]note.NoteSummary, error) {
+func (m *mockRepo) FindSummaryByUserID(userID uuid.UUID, _, _ int, _ note.ListFilter) ([]note.NoteSummary, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var out []note.NoteSummary
@@ -55,8 +55,8 @@ func (m *mockRepo) FindSummaryByUserID(userID uuid.UUID, _, _ int) ([]note.NoteS
 	return out, nil
 }
 
-func (m *mockRepo) Search(userID uuid.UUID, _ string, page, perPage int) ([]note.NoteSummary, error) {
-	return m.FindSummaryByUserID(userID, page, perPage)
+func (m *mockRepo) Search(userID uuid.UUID, _ string, page, perPage int, filter note.ListFilter) ([]note.NoteSummary, error) {
+	return m.FindSummaryByUserID(userID, page, perPage, filter)
 }
 
 func (m *mockRepo) Update(n *note.Note) error {

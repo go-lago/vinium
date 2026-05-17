@@ -25,6 +25,8 @@ type createRequest struct {
 	Tags           []string `json:"tags"`
 	Type           string   `json:"type"`
 	LexicalVersion string   `json:"lexical_version"`
+	ContextID      *string  `json:"context_id"`
+	ProjectID      *string  `json:"project_id"`
 }
 
 type updateRequest struct {
@@ -34,6 +36,8 @@ type updateRequest struct {
 	Tags           []string `json:"tags"`
 	Type           string   `json:"type"`
 	LexicalVersion string   `json:"lexical_version"`
+	ContextID      *string  `json:"context_id"`
+	ProjectID      *string  `json:"project_id"`
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -60,7 +64,14 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
 	query := r.URL.Query().Get("q")
 
-	summaries, err := h.svc.List(ListInput{UserID: uid, Page: page, PerPage: perPage, Query: query})
+	summaries, err := h.svc.List(ListInput{
+		UserID:    uid,
+		Page:      page,
+		PerPage:   perPage,
+		Query:     query,
+		ContextID: r.URL.Query().Get("context_id"),
+		ProjectID: r.URL.Query().Get("project_id"),
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch notes")
 		return
@@ -88,6 +99,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		Tags:           req.Tags,
 		NoteType:       req.Type,
 		LexicalVersion: req.LexicalVersion,
+		ContextID:      parseOptionalUUID(req.ContextID),
+		ProjectID:      parseOptionalUUID(req.ProjectID),
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create note")
@@ -146,6 +159,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		Tags:           req.Tags,
 		NoteType:       req.Type,
 		LexicalVersion: req.LexicalVersion,
+		ContextID:      parseOptionalUUID(req.ContextID),
+		ProjectID:      parseOptionalUUID(req.ProjectID),
 	})
 	if err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
@@ -179,4 +194,15 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func parseOptionalUUID(s *string) *uuid.UUID {
+	if s == nil || *s == "" {
+		return nil
+	}
+	id, err := uuid.Parse(*s)
+	if err != nil {
+		return nil
+	}
+	return &id
 }

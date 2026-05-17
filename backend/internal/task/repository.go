@@ -18,8 +18,10 @@ type Repository interface {
 }
 
 type ListFilter struct {
-	Status   string
-	Priority string
+	Status    string
+	Priority  string
+	ContextID string
+	ProjectID string
 }
 
 type repository struct {
@@ -51,6 +53,12 @@ func (r *repository) FindByUserID(userID uuid.UUID, filter ListFilter) ([]Task, 
 	}
 	if filter.Priority != "" {
 		q = q.Where("priority = ?", filter.Priority)
+	}
+	if filter.ContextID != "" {
+		q = q.Where("context_id = ?", filter.ContextID)
+	}
+	if filter.ProjectID != "" {
+		q = q.Where("project_id = ?", filter.ProjectID)
 	}
 	err := q.Order("created_at DESC").Find(&tasks).Error
 	return tasks, err

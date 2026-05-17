@@ -24,6 +24,8 @@ type CreateInput struct {
 	Priority    Priority
 	DueDate     *time.Time
 	NoteID      *uuid.UUID
+	ContextID   *uuid.UUID
+	ProjectID   *uuid.UUID
 }
 
 type UpdateInput struct {
@@ -33,6 +35,8 @@ type UpdateInput struct {
 	Priority    Priority
 	DueDate     *time.Time
 	NoteID      *uuid.UUID
+	ContextID   *uuid.UUID
+	ProjectID   *uuid.UUID
 }
 
 func (s *Service) Create(in CreateInput) (*Task, error) {
@@ -52,6 +56,8 @@ func (s *Service) Create(in CreateInput) (*Task, error) {
 		Priority:    priority,
 		DueDate:     in.DueDate,
 		NoteID:      in.NoteID,
+		ContextID:   in.ContextID,
+		ProjectID:   in.ProjectID,
 	}
 	if err := s.repo.Create(t); err != nil {
 		return nil, err
@@ -88,6 +94,8 @@ func (s *Service) Update(id, userID uuid.UUID, in UpdateInput) (*Task, error) {
 	t.Priority = in.Priority
 	t.DueDate = in.DueDate
 	t.NoteID = in.NoteID
+	t.ContextID = in.ContextID
+	t.ProjectID = in.ProjectID
 	if err := s.repo.Update(t); err != nil {
 		return nil, err
 	}
