@@ -5,6 +5,7 @@ import { contextsApi } from '@/api/contexts'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useRef } from 'react'
 import type { Context } from '@/types'
+import { Button } from '@/components/ui/button'
 
 function IconNotes() {
   return (
@@ -188,30 +189,35 @@ function ContextSwitcher() {
                   ))}
                 </div>
                 <div className="flex gap-1">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="xs"
+                    className="flex-1"
                     onClick={() => { setCreating(false); setNewName('') }}
-                    className="flex-1 py-1 text-[11px] rounded border hover:bg-accent transition-colors"
                   >
                     Отмена
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    size="xs"
+                    className="flex-1"
                     disabled={saving || !newName.trim()}
-                    className="flex-1 py-1 text-[11px] rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     Создать
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => setCreating(true)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
               >
                 <span className="text-base leading-none">+</span>
                 <span>Новый контекст</span>
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -271,21 +277,25 @@ export function Sidebar() {
 
       <ContextSwitcher />
 
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={toggleTheme}
         title={dark ? 'Светлая тема' : 'Тёмная тема'}
-        className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-1 mt-1"
+        className="mb-1 mt-1 text-muted-foreground hover:text-foreground"
       >
         {dark ? <IconSun /> : <IconMoon />}
-      </button>
+      </Button>
 
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={logout}
         title="Выйти"
-        className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-1"
+        className="mb-1 text-muted-foreground hover:text-foreground"
       >
         <IconLogout />
-      </button>
+      </Button>
     </aside>
   )
 }

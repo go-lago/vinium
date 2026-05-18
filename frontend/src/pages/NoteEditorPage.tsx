@@ -5,6 +5,7 @@ import type { Note } from '@/types'
 import { Editor } from '@/editor/Editor'
 import { formatDate } from '@/lib/format'
 import { AIPanel } from '@/components/AIPanel'
+import { Button } from '@/components/ui/button'
 
 const AUTOSAVE_DELAY = 1500
 
@@ -184,12 +185,14 @@ export function NoteEditorPage() {
 
         <div className="ml-auto flex items-center gap-3">
           {saveStatus === 'error' ? (
-            <button
-              className="font-mono text-[10px] text-destructive hover:underline"
+            <Button
+              variant="link"
+              size="xs"
+              className="font-mono text-[10px] text-destructive"
               onClick={() => save(titleRef.current, contentRef.current)}
             >
               Не сохранено — повторить
-            </button>
+            </Button>
           ) : (
             <span
               className={`font-mono text-[10px] text-muted-foreground transition-opacity duration-500 ${
@@ -201,39 +204,47 @@ export function NoteEditorPage() {
           )}
 
           {!isDraft && (
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
+              className="font-mono text-[10px]"
               onClick={handleTogglePin}
               title={note?.is_pinned ? 'Открепить' : 'Закрепить'}
-              className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
             >
               {note?.is_pinned ? 'Открепить' : 'Закрепить'}
-            </button>
+            </Button>
           )}
 
           {!isDraft && (
             deleteConfirm ? (
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] text-muted-foreground">Удалить навсегда?</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="font-mono text-[10px]"
                   onClick={() => setDeleteConfirm(false)}
-                  className="font-mono text-[10px] text-muted-foreground hover:text-foreground"
                 >
                   Отмена
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="link"
+                  size="xs"
+                  className="font-mono text-[10px] text-destructive"
                   onClick={handleDelete}
-                  className="font-mono text-[10px] text-destructive hover:underline"
                 >
                   Удалить
-                </button>
+                </Button>
               </div>
             ) : (
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
+                className="font-mono text-[10px] text-muted-foreground hover:text-destructive"
                 onClick={() => setDeleteConfirm(true)}
-                className="font-mono text-[10px] text-muted-foreground hover:text-destructive transition-colors"
               >
                 Удалить
-              </button>
+              </Button>
             )
           )}
         </div>

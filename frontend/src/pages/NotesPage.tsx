@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { notesApi } from '@/api/notes'
 import type { NoteSummary } from '@/types'
 import { formatRelative } from '@/lib/format'
+import { Button } from '@/components/ui/button'
 
 const SEARCH_DEBOUNCE = 300
 
@@ -85,24 +86,23 @@ function NoteRow({ note, onPin, onDelete }: NoteRowProps) {
       </span>
 
       <div className="absolute right-3 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border p-0.5 rounded-md">
-        <button
+        <Button
+          variant="ghost"
+          size="icon-xs"
           onClick={(e) => { e.stopPropagation(); onPin() }}
           title={note.is_pinned ? 'Открепить' : 'Закрепить'}
-          className="w-[22px] h-[22px] flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <IconPin />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
           onClick={handleDelete}
           title={confirmDelete ? 'Нажмите ещё раз для удаления' : 'Удалить'}
-          className={`w-[22px] h-[22px] flex items-center justify-center rounded transition-colors ${
-            confirmDelete
-              ? 'text-destructive bg-destructive/10'
-              : 'text-muted-foreground hover:text-destructive hover:bg-accent'
-          }`}
+          className={confirmDelete ? 'text-destructive bg-destructive/10 hover:bg-destructive/20 hover:text-destructive' : 'text-muted-foreground hover:text-destructive'}
         >
           <IconTrash />
-        </button>
+        </Button>
       </div>
     </li>
   )
@@ -174,12 +174,9 @@ export function NotesPage() {
           >
             Заметки
           </h1>
-          <button
-            onClick={() => navigate('/notes/new')}
-            className="h-7 px-3 text-[12px] font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
-          >
+          <Button size="sm" onClick={() => navigate('/notes/new')}>
             + Новая
-          </button>
+          </Button>
         </div>
 
         <div className="pb-3">
@@ -207,22 +204,16 @@ export function NotesPage() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <p className="text-[13px] text-muted-foreground">Не удалось загрузить заметки</p>
-            <button
-              onClick={() => fetchNotes(query)}
-              className="text-[12px] text-primary hover:underline"
-            >
+            <Button variant="link" size="sm" onClick={() => fetchNotes(query)}>
               Повторить
-            </button>
+            </Button>
           </div>
         ) : notes.length === 0 && !query ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <p className="text-[13px] text-muted-foreground">Пока нет ни одной заметки</p>
-            <button
-              onClick={() => navigate('/notes/new')}
-              className="h-7 px-3 text-[12px] font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
-            >
+            <Button size="sm" onClick={() => navigate('/notes/new')}>
               Создать первую
-            </button>
+            </Button>
           </div>
         ) : notes.length === 0 ? (
           <div className="flex items-center justify-center py-16 font-mono text-[11px] text-muted-foreground">

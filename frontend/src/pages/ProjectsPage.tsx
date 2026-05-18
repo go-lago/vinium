@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useContextStore } from '@/store/contextStore'
 import { projectsApi } from '@/api/projects'
 import type { Project } from '@/types'
+import { Button } from '@/components/ui/button'
 
 function IconPlus() {
   return (
@@ -79,20 +80,12 @@ function CreateProjectModal({ contextId, onClose, onCreate }: CreateModalProps) 
             />
           </div>
           <div className="flex gap-2 justify-end mt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-sm rounded-md border hover:bg-accent transition-colors"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
               Отмена
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !name.trim()}
-              className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" size="sm" disabled={loading || !name.trim()}>
               Создать
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -145,12 +138,14 @@ function ProjectCard({ project, onArchive }: { project: Project; onArchive: (id:
           {project.status === 'active' ? 'Активный' : 'Архив'}
         </span>
       </div>
-      <button
+      <Button
+        variant="outline"
+        size="xs"
         onClick={handleArchive}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-[10px] text-muted-foreground hover:text-foreground transition-all px-1.5 py-0.5 rounded border"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all"
       >
         {project.status === 'active' ? 'Архивировать' : 'Восстановить'}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -195,29 +190,26 @@ export function ProjectsPage() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1 text-xs">
+        <div className="flex items-center gap-1">
           {(['active', 'archived', 'all'] as const).map((f) => (
-            <button
+            <Button
               key={f}
+              size="xs"
+              variant={filter === f ? 'secondary' : 'ghost'}
               onClick={() => setFilter(f)}
-              className={`px-2 py-1 rounded-md transition-colors ${
-                filter === f
-                  ? 'bg-accent text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
             >
               {f === 'active' ? 'Активные' : f === 'archived' ? 'Архив' : 'Все'}
-            </button>
+            </Button>
           ))}
         </div>
-        <button
+        <Button
+          size="sm"
           onClick={() => setShowCreate(true)}
           disabled={!activeContextId}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors disabled:opacity-40"
         >
           <IconPlus />
           Новый
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-auto p-5">
@@ -232,12 +224,9 @@ export function ProjectsPage() {
         {activeContextId && !loading && filtered.length === 0 && (
           <div className="text-center mt-20">
             <p className="text-sm text-muted-foreground">Проектов пока нет</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="mt-3 text-xs text-primary hover:underline"
-            >
+            <Button variant="link" size="sm" onClick={() => setShowCreate(true)} className="mt-3">
               Создать первый проект
-            </button>
+            </Button>
           </div>
         )}
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">

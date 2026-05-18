@@ -4,6 +4,7 @@ import { projectsApi } from '@/api/projects'
 import { notesApi } from '@/api/notes'
 import { tasksApi } from '@/api/tasks'
 import type { Project, NoteSummary, Task, TaskStatus } from '@/types'
+import { Button } from '@/components/ui/button'
 
 type Tab = 'notes' | 'tasks'
 
@@ -160,14 +161,10 @@ function QuickCreateNote({
         placeholder="Название заметки…"
         className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
       />
-      <button
-        type="submit"
-        disabled={saving || !title.trim()}
-        className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-      >
+      <Button type="submit" size="sm" disabled={saving || !title.trim()}>
         <IconPlus />
         Создать
-      </button>
+      </Button>
     </form>
   )
 }
@@ -205,14 +202,10 @@ function QuickCreateTask({
         placeholder="Название задачи…"
         className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
       />
-      <button
-        type="submit"
-        disabled={saving || !title.trim()}
-        className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-      >
+      <Button type="submit" size="sm" disabled={saving || !title.trim()}>
         <IconPlus />
         Создать
-      </button>
+      </Button>
     </form>
   )
 }

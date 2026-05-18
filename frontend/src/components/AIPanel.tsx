@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { aiApi } from '@/api/ai'
 import axios from 'axios'
+import { Button } from '@/components/ui/button'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
@@ -77,16 +78,16 @@ export function AIPanel({ isDraft, contentRef }: Props) {
       {/* Action buttons */}
       <div className="flex flex-col gap-1 mb-3">
         {ACTIONS.map(({ key, label }) => (
-          <button
+          <Button
             key={key}
+            variant="outline"
+            size="xs"
             disabled={isDisabled || isLoading}
             onClick={() => runAction(key)}
-            className="text-left px-2 py-1 rounded border border-border font-mono text-[11px] text-foreground
-              hover:bg-accent hover:text-accent-foreground transition-colors
-              disabled:opacity-40 disabled:cursor-not-allowed"
+            className="justify-start font-mono text-[11px]"
           >
             {label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -110,18 +111,10 @@ export function AIPanel({ isDraft, contentRef }: Props) {
             {result}
           </p>
           <div className="flex gap-1.5">
-            <button
-              onClick={copy}
-              className="px-2 py-0.5 rounded border border-border font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Button variant="outline" size="xs" onClick={copy}>
               {copied ? 'Скопировано ✓' : 'Копировать'}
-            </button>
-            <button
-              onClick={dismiss}
-              className="px-2 py-0.5 rounded border border-border font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ×
-            </button>
+            </Button>
+            <Button variant="ghost" size="xs" onClick={dismiss}>×</Button>
           </div>
         </div>
       )}
@@ -131,18 +124,10 @@ export function AIPanel({ isDraft, contentRef }: Props) {
         <div className="mt-1">
           <p className="text-[11px] text-destructive mb-1.5 leading-snug">{errorMsg}</p>
           <div className="flex gap-1.5">
-            <button
-              onClick={() => runAction(lastAction)}
-              className="px-2 py-0.5 rounded border border-border font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Button variant="outline" size="xs" onClick={() => runAction(lastAction)}>
               Повторить
-            </button>
-            <button
-              onClick={dismiss}
-              className="px-2 py-0.5 rounded border border-border font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ×
-            </button>
+            </Button>
+            <Button variant="ghost" size="xs" onClick={dismiss}>×</Button>
           </div>
         </div>
       )}

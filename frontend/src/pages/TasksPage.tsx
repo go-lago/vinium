@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { tasksApi } from '@/api/tasks'
 import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -173,12 +174,14 @@ function InlineCreate({ onConfirm }: { onConfirm: (title: string) => void }) {
 
   if (!open) {
     return (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-start gap-1.5 text-muted-foreground hover:text-foreground font-normal"
         onMouseDown={(e) => { e.preventDefault(); setOpen(true) }}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
       >
         <span className="text-base leading-none">+</span> Добавить задачу
-      </button>
+      </Button>
     )
   }
 
@@ -200,7 +203,7 @@ function InlineCreate({ onConfirm }: { onConfirm: (title: string) => void }) {
         className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
       />
       {title.trim() && (
-        <button onMouseDown={(e) => { e.preventDefault(); confirm() }} className="text-xs text-primary hover:underline">Добавить</button>
+        <Button variant="link" size="xs" onMouseDown={(e) => { e.preventDefault(); confirm() }}>Добавить</Button>
       )}
     </div>
   )
@@ -287,9 +290,9 @@ function DetailPanel({ task, onSave, onDelete, onClose }: {
           ) : (
             <button onClick={() => setDeleteConfirm(true)} className="font-mono text-[10px] text-muted-foreground hover:text-destructive transition-colors">Удалить</button>
           )}
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} className="text-muted-foreground">
             <IconClose />
-          </button>
+          </Button>
         </div>
       </div>
 
