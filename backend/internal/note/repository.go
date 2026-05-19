@@ -78,7 +78,7 @@ func (r *repository) Search(userID uuid.UUID, query string, page, perPage int, f
 
 func applyNoteFilter(q *gorm.DB, filter ListFilter) *gorm.DB {
 	if filter.ContextID != "" {
-		q = q.Where("context_id = ?", filter.ContextID)
+		q = q.Where("(context_id = ? OR context_id IS NULL)", filter.ContextID)
 	}
 	if filter.ProjectID != "" {
 		q = q.Where("project_id = ?", filter.ProjectID)

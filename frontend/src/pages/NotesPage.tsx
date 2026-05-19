@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { notesApi } from '@/api/notes'
-import type { NoteSummary } from '@/types'
+import { projectsApi } from '@/api/projects'
+import { useContextStore } from '@/store/contextStore'
+import type { NoteSummary, Project } from '@/types'
 import { formatRelative } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 
@@ -120,30 +122,53 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 export function NotesPage() {
+  const { activeContextId } = useContextStore()
   const [notes, setNotes] = useState<NoteSummary[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [query, setQuery] = useState('')
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigate = useNavigate()
 
-  const fetchNotes = (q = '') => {
+  const fetchNotes = useCallback((q: string, projectId: string | null) => {
     setLoading(true)
     setError(false)
-    const req = q ? notesApi.search(q) : notesApi.list()
+    const params: { context_id?: string; project_id?: string } = {}
+    if (activeContextId) params.context_id = activeContextId
+    if (projectId) params.project_id = projectId
+    const req = q ? notesApi.search(q, 1, 50, params) : notesApi.list(1, 50, params)
     req
       .then(({ data }) => setNotes(data ?? []))
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }
+  }, [activeContextId])
 
-  useEffect(() => { fetchNotes() }, [])
+  useEffect(() => {
+    setSelectedProjectId(null)
+    setQuery('')
+    fetchNotes('', null)
+    if (activeContextId) {
+      projectsApi.listByContext(activeContextId)
+        .then(({ data }) => setProjects(data))
+        .catch(() => setProjects([]))
+    } else {
+      setProjects([])
+    }
+  }, [activeContextId, fetchNotes])
+
   useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current) }, [])
 
   const handleSearchChange = (value: string) => {
     setQuery(value)
     if (searchTimer.current) clearTimeout(searchTimer.current)
-    searchTimer.current = setTimeout(() => fetchNotes(value), SEARCH_DEBOUNCE)
+    searchTimer.current = setTimeout(() => fetchNotes(value, selectedProjectId), SEARCH_DEBOUNCE)
+  }
+
+  const handleProjectChange = (projectId: string | null) => {
+    setSelectedProjectId(projectId)
+    fetchNotes(query, projectId)
   }
 
   const handlePin = async (note: NoteSummary) => {
@@ -152,7 +177,7 @@ export function NotesPage() {
       content: '',
       is_pinned: !note.is_pinned,
     })
-    fetchNotes(query)
+    fetchNotes(query, selectedProjectId)
   }
 
   const handleDelete = async (id: string) => {
@@ -162,18 +187,33 @@ export function NotesPage() {
 
   const pinned = notes.filter(n => n.is_pinned)
   const recent = notes.filter(n => !n.is_pinned)
+  const activeProjects = projects.filter(p => p.status === 'active')
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Workspace header */}
       <div className="border-b bg-background px-5 pt-4 pb-0 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
-          <h1
-            className="text-2xl font-medium tracking-tight leading-none"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Заметки
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1
+              className="text-2xl font-medium tracking-tight leading-none"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Заметки
+            </h1>
+            {activeProjects.length > 0 && (
+              <select
+                value={selectedProjectId ?? ''}
+                onChange={e => handleProjectChange(e.target.value || null)}
+                className="text-[11px] text-muted-foreground bg-background outline-none border border-border rounded-md px-2 py-0.5 cursor-pointer hover:border-primary transition-colors"
+              >
+                <option value="">Все проекты</option>
+                {activeProjects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
           <Button size="sm" onClick={() => navigate('/notes/new')}>
             + Новая
           </Button>
@@ -204,7 +244,7 @@ export function NotesPage() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <p className="text-[13px] text-muted-foreground">Не удалось загрузить заметки</p>
-            <Button variant="link" size="sm" onClick={() => fetchNotes(query)}>
+            <Button variant="link" size="sm" onClick={() => fetchNotes(query, selectedProjectId)}>
               Повторить
             </Button>
           </div>

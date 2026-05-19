@@ -13,14 +13,6 @@ function IconPlus() {
   )
 }
 
-function IconFolder() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-5 h-5">
-      <path d="M1.5 4.5A1 1 0 012.5 3.5h3.293a1 1 0 01.707.293L7.914 4.707A1 1 0 008.621 5H13.5a1 1 0 011 1v6.5a1 1 0 01-1 1h-11a1 1 0 01-1-1V4.5z"/>
-    </svg>
-  )
-}
-
 interface CreateModalProps {
   contextId: string
   onClose: () => void
@@ -49,11 +41,11 @@ function CreateProjectModal({ contextId, onClose, onCreate }: CreateModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div
-        className="bg-card border rounded-xl shadow-xl w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-card border rounded-xl shadow-xl w-full max-w-md p-6">
         <h2 className="text-base font-semibold mb-4">Новый проект</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
@@ -93,7 +85,7 @@ function CreateProjectModal({ contextId, onClose, onCreate }: CreateModalProps) 
   )
 }
 
-function ProjectCard({ project, onArchive }: { project: Project; onArchive: (id: string) => void }) {
+function ProjectRow({ project, onArchiveToggle }: { project: Project; onArchiveToggle: (id: string) => void }) {
   const navigate = useNavigate()
 
   const handleArchive = async (e: React.MouseEvent) => {
@@ -106,7 +98,7 @@ function ProjectCard({ project, onArchive }: { project: Project; onArchive: (id:
         color: project.color,
         icon: project.icon,
       })
-      onArchive(project.id)
+      onArchiveToggle(project.id)
     } catch {
       // ignore
     }
@@ -114,37 +106,37 @@ function ProjectCard({ project, onArchive }: { project: Project; onArchive: (id:
 
   return (
     <div
-      className="group relative rounded-xl border bg-card p-4 hover:border-primary/50 transition-colors cursor-pointer"
+      className="group flex items-center gap-3 px-5 py-3 hover:bg-card cursor-pointer transition-colors border-b last:border-b-0"
       onClick={() => navigate(`/projects/${project.id}`)}
     >
       <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 text-xl"
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
         style={{ background: project.color + '22' }}
       >
-        {project.icon || <IconFolder />}
+        {project.icon || '📁'}
       </div>
-      <h3 className="font-medium text-sm truncate">{project.name}</h3>
-      {project.description && (
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{project.description}</p>
-      )}
-      <div className="flex items-center gap-1.5 mt-3">
-        <span
-          className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-          style={{
-            background: project.status === 'active' ? '#22c55e22' : '#94a3b822',
-            color: project.status === 'active' ? '#16a34a' : '#64748b',
-          }}
-        >
-          {project.status === 'active' ? 'Активный' : 'Архив'}
-        </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{project.name}</p>
+        {project.description && (
+          <p className="text-xs text-muted-foreground truncate">{project.description}</p>
+        )}
       </div>
+      <span
+        className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
+        style={{
+          background: project.status === 'active' ? '#22c55e22' : '#94a3b822',
+          color: project.status === 'active' ? '#16a34a' : '#64748b',
+        }}
+      >
+        {project.status === 'active' ? 'Активный' : 'Архив'}
+      </span>
       <Button
-        variant="outline"
+        variant="ghost"
         size="xs"
         onClick={handleArchive}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground text-[11px]"
       >
-        {project.status === 'active' ? 'Архивировать' : 'Восстановить'}
+        {project.status === 'active' ? 'В архив' : 'Восстановить'}
       </Button>
     </div>
   )
@@ -181,13 +173,13 @@ export function ProjectsPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-3 border-b shrink-0">
-        <div className="flex-1">
-          <h1 className="text-sm font-semibold">Проекты</h1>
+      <div className="flex items-center gap-3 px-5 h-10 border-b shrink-0">
+        <div className="flex items-center gap-2 flex-1">
+          <span className="text-sm font-medium">Проекты</span>
           {activeCtx && (
-            <p className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {activeCtx.icon} {activeCtx.name}
-            </p>
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -212,7 +204,7 @@ export function ProjectsPage() {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto p-5">
+      <div className="flex-1 overflow-auto">
         {!activeContextId && (
           <p className="text-sm text-muted-foreground text-center mt-20">
             Выберите контекст в боковой панели
@@ -229,11 +221,13 @@ export function ProjectsPage() {
             </Button>
           </div>
         )}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
-          {filtered.map((p) => (
-            <ProjectCard key={p.id} project={p} onArchive={handleArchiveToggle} />
-          ))}
-        </div>
+        {filtered.length > 0 && (
+          <div className="flex flex-col">
+            {filtered.map((p) => (
+              <ProjectRow key={p.id} project={p} onArchiveToggle={handleArchiveToggle} />
+            ))}
+          </div>
+        )}
       </div>
 
       {showCreate && activeContextId && (

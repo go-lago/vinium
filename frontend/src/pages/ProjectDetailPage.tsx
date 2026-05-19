@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi } from '@/api/projects'
-import { notesApi } from '@/api/notes'
-import { tasksApi } from '@/api/tasks'
-import type { Project, NoteSummary, Task, TaskStatus } from '@/types'
+import type { Project } from '@/types'
 import { Button } from '@/components/ui/button'
 
-type Tab = 'notes' | 'tasks'
+const AUTOSAVE_DELAY = 1500
 
 function IconBack() {
   return (
@@ -16,230 +14,132 @@ function IconBack() {
   )
 }
 
-function IconPlus() {
+function IconChevron() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
-      <path d="M8 3v10M3 8h10" strokeLinecap="round"/>
+    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.3" className="w-2.5 h-2.5">
+      <path d="M3 2l4 3-4 3"/>
     </svg>
   )
 }
 
-function StatusDot({ status }: { status: TaskStatus }) {
-  const colors: Record<TaskStatus, string> = {
-    todo: 'border-muted-foreground',
-    in_progress: 'border-amber-400 bg-amber-400/30',
-    done: 'bg-primary border-primary',
-    cancelled: 'border-muted-foreground/40',
-  }
-  return (
-    <span
-      className={`inline-block w-3 h-3 rounded-full border-2 flex-shrink-0 ${colors[status]}`}
-    />
-  )
-}
-
-function NoteRow({ note }: { note: NoteSummary }) {
-  return (
-    <Link
-      to={`/notes/${note.id}`}
-      className="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-accent transition-colors group"
-    >
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0">
-        <path d="M3.5 1.5h9a1 1 0 011 1v11a1 1 0 01-1 1h-9a1 1 0 01-1-1v-11a1 1 0 011-1z"/>
-        <path d="M5 6h6M5 9.5h4"/>
-      </svg>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate group-hover:text-foreground">
-          {note.title || <span className="italic text-muted-foreground">Без названия</span>}
-        </p>
-        {note.content_plain && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">{note.content_plain}</p>
-        )}
-      </div>
-      <span className="text-[10px] text-muted-foreground whitespace-nowrap self-center">
-        {new Date(note.updated_at).toLocaleDateString('ru')}
-      </span>
-    </Link>
-  )
-}
-
-function TaskRow({
-  task,
-  onStatusChange,
-}: {
-  task: Task
-  onStatusChange: (id: string, status: TaskStatus) => void
-}) {
-  const NEXT: Record<TaskStatus, TaskStatus> = {
-    todo: 'in_progress',
-    in_progress: 'done',
-    done: 'todo',
-    cancelled: 'todo',
-  }
-
-  const handleToggle = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    const next = NEXT[task.status]
-    onStatusChange(task.id, next)
-    try {
-      await tasksApi.update(task.id, {
-        title: task.title,
-        description: task.description,
-        status: next,
-        priority: task.priority,
-        due_date: task.due_date,
-        note_id: task.note_id,
-      })
-    } catch {
-      onStatusChange(task.id, task.status) // rollback
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent transition-colors">
-      <button onMouseDown={handleToggle} className="flex-shrink-0">
-        <StatusDot status={task.status} />
-      </button>
-      <span
-        className={`text-sm flex-1 truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}
-      >
-        {task.title || <span className="italic text-muted-foreground">Без названия</span>}
-      </span>
-      {task.priority !== 'none' && (
-        <span
-          className="text-[10px] px-1.5 py-0.5 rounded-full"
-          style={{
-            background:
-              task.priority === 'high'
-                ? '#ef444422'
-                : task.priority === 'medium'
-                  ? '#f59e0b22'
-                  : '#64748b22',
-            color:
-              task.priority === 'high'
-                ? '#ef4444'
-                : task.priority === 'medium'
-                  ? '#f59e0b'
-                  : '#64748b',
-          }}
-        >
-          {task.priority}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function QuickCreateNote({
-  projectId,
-  onCreated,
-}: {
-  projectId: string
-  onCreated: (note: NoteSummary) => void
-}) {
-  const [title, setTitle] = useState('')
-  const [saving, setSaving] = useState(false)
-  const navigate = useNavigate()
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title.trim()) return
-    setSaving(true)
-    try {
-      const res = await notesApi.create({ title: title.trim(), content: '', project_id: projectId })
-      navigate(`/notes/${res.data.id}`)
-    } catch {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex gap-2 px-3 py-2 border-t">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Название заметки…"
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-      />
-      <Button type="submit" size="sm" disabled={saving || !title.trim()}>
-        <IconPlus />
-        Создать
-      </Button>
-    </form>
-  )
-}
-
-function QuickCreateTask({
-  projectId,
-  onCreated,
-}: {
-  projectId: string
-  onCreated: (task: Task) => void
-}) {
-  const [title, setTitle] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title.trim()) return
-    setSaving(true)
-    try {
-      const res = await tasksApi.create({ title: title.trim(), project_id: projectId })
-      onCreated(res.data)
-      setTitle('')
-    } catch {
-      // ignore
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex gap-2 px-3 py-2 border-t">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Название задачи…"
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-      />
-      <Button type="submit" size="sm" disabled={saving || !title.trim()}>
-        <IconPlus />
-        Создать
-      </Button>
-    </form>
-  )
-}
+const PROJECT_COLORS = [
+  '#6366f1', '#0ea5e9', '#22c55e', '#f59e0b',
+  '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6',
+]
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+
   const [project, setProject] = useState<Project | null>(null)
-  const [notes, setNotes] = useState<NoteSummary[]>([])
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [tab, setTab] = useState<Tab>('notes')
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [color, setColor] = useState('#6366f1')
+  const [icon, setIcon] = useState('📁')
+  const [status, setStatus] = useState<'active' | 'archived'>('active')
   const [loading, setLoading] = useState(true)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
 
-  const loadProject = useCallback(async () => {
+  const nameRef = useRef('')
+  const descriptionRef = useRef('')
+  const colorRef = useRef('#6366f1')
+  const iconRef = useRef('📁')
+  const statusRef = useRef<'active' | 'archived'>('active')
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
     if (!id) return
-    try {
-      const [pRes, nRes, tRes] = await Promise.all([
-        projectsApi.get(id),
-        notesApi.list(1, 100, { project_id: id }),
-        tasksApi.list({ project_id: id }),
-      ])
-      setProject(pRes.data)
-      setNotes(nRes.data)
-      setTasks(tRes.data)
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false)
+    projectsApi.get(id)
+      .then(({ data }) => {
+        setProject(data)
+        setName(data.name)
+        setDescription(data.description)
+        setColor(data.color)
+        setIcon(data.icon || '📁')
+        setStatus(data.status)
+        nameRef.current = data.name
+        descriptionRef.current = data.description
+        colorRef.current = data.color
+        iconRef.current = data.icon || '📁'
+        statusRef.current = data.status
+      })
+      .catch(() => navigate('/projects'))
+      .finally(() => setLoading(false))
+  }, [id, navigate])
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      if (savedTimer.current) clearTimeout(savedTimer.current)
     }
-  }, [id])
+  }, [])
 
-  useEffect(() => { loadProject() }, [loadProject])
+  const markSaved = () => {
+    setSaveStatus('saved')
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+  }
 
-  const handleTaskStatusChange = (taskId: string, status: TaskStatus) => {
-    setTasks((ts) => ts.map((t) => (t.id === taskId ? { ...t, status } : t)))
+  const save = async () => {
+    if (!id) return
+    setSaveStatus('saving')
+    try {
+      const { data } = await projectsApi.update(id, {
+        name: nameRef.current,
+        description: descriptionRef.current,
+        color: colorRef.current,
+        icon: iconRef.current,
+        status: statusRef.current,
+      })
+      setProject(data)
+      markSaved()
+    } catch {
+      setSaveStatus('error')
+    }
+  }
+
+  const scheduleSave = () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(save, AUTOSAVE_DELAY)
+  }
+
+  const handleName = (v: string) => {
+    setName(v)
+    nameRef.current = v
+    scheduleSave()
+  }
+
+  const handleDescription = (v: string) => {
+    setDescription(v)
+    descriptionRef.current = v
+    scheduleSave()
+  }
+
+  const handleColor = (v: string) => {
+    setColor(v)
+    colorRef.current = v
+    scheduleSave()
+  }
+
+  const handleIcon = (v: string) => {
+    setIcon(v)
+    iconRef.current = v
+    scheduleSave()
+  }
+
+  const handleStatusToggle = () => {
+    const next = status === 'active' ? 'archived' : 'active'
+    setStatus(next)
+    statusRef.current = next
+    scheduleSave()
+  }
+
+  const handleDelete = async () => {
+    if (!id) return
+    await projectsApi.delete(id)
+    navigate('/projects')
   }
 
   if (loading) {
@@ -263,129 +163,168 @@ export function ProjectDetailPage() {
     )
   }
 
-  const doneTasks = tasks.filter((t) => t.status === 'done').length
-  const totalTasks = tasks.length
+  const saveLabel =
+    saveStatus === 'saving' ? 'Сохранение...' :
+    saveStatus === 'saved'  ? 'Сохранено'     :
+    saveStatus === 'error'  ? 'Не сохранено'  : ''
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 border-b flex-shrink-0">
-        <Link
-          to="/projects"
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-3 transition-colors w-fit"
-        >
-          <IconBack />
-          Проекты
-        </Link>
-        <div className="flex items-start gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: project.color + '22' }}
+      <div className="flex items-center gap-2 px-5 h-10 border-b bg-background flex-shrink-0">
+        <nav className="flex items-center gap-1 text-[12px] text-muted-foreground">
+          <button
+            onClick={() => navigate('/projects')}
+            className="hover:text-foreground transition-colors flex items-center gap-1"
           >
-            {project.icon || '📁'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-semibold">{project.name}</h1>
-            {project.description && (
-              <p className="text-sm text-muted-foreground mt-0.5">{project.description}</p>
-            )}
-            {totalTasks > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {doneTasks} / {totalTasks} задач выполнено
-              </p>
-            )}
-          </div>
-          <span
-            className="text-[10px] px-2 py-0.5 rounded-full self-start mt-1"
-            style={{
-              background: project.status === 'active' ? '#22c55e22' : '#94a3b822',
-              color: project.status === 'active' ? '#16a34a' : '#64748b',
-            }}
-          >
-            {project.status === 'active' ? 'Активный' : 'Архив'}
-          </span>
+            <IconBack />
+            Проекты
+          </button>
+          <IconChevron />
+          <span className="text-foreground truncate max-w-[300px]">{name || 'Без названия'}</span>
+        </nav>
+
+        <div className="ml-auto flex items-center gap-3">
+          {saveStatus === 'error' ? (
+            <Button
+              variant="link"
+              size="xs"
+              className="font-mono text-[10px] text-destructive"
+              onClick={save}
+            >
+              Не сохранено — повторить
+            </Button>
+          ) : (
+            <span
+              className={`font-mono text-[10px] text-muted-foreground transition-opacity duration-500 ${
+                saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'
+              }`}
+            >
+              {saveLabel}
+            </span>
+          )}
+
+          {deleteConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-muted-foreground">Удалить навсегда?</span>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="font-mono text-[10px]"
+                onClick={() => setDeleteConfirm(false)}
+              >
+                Отмена
+              </Button>
+              <Button
+                variant="link"
+                size="xs"
+                className="font-mono text-[10px] text-destructive"
+                onClick={handleDelete}
+              >
+                Удалить
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="xs"
+              className="font-mono text-[10px] text-muted-foreground hover:text-destructive"
+              onClick={() => setDeleteConfirm(true)}
+            >
+              Удалить
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-0 border-b flex-shrink-0 px-5">
-        <button
-          onClick={() => setTab('notes')}
-          className={`px-3 py-2.5 text-sm transition-colors border-b-2 -mb-px ${
-            tab === 'notes'
-              ? 'border-primary text-foreground font-medium'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Заметки
-          {notes.length > 0 && (
-            <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-accent text-muted-foreground">
-              {notes.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setTab('tasks')}
-          className={`px-3 py-2.5 text-sm transition-colors border-b-2 -mb-px ${
-            tab === 'tasks'
-              ? 'border-primary text-foreground font-medium'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Задачи
-          {tasks.length > 0 && (
-            <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-accent text-muted-foreground">
-              {tasks.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto">
-        {tab === 'notes' && (
-          <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-auto p-3">
-              {notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center mt-16">
-                  Нет заметок в этом проекте
-                </p>
-              ) : (
-                <div className="flex flex-col gap-0.5">
-                  {notes.map((n) => (
-                    <NoteRow key={n.id} note={n} />
-                  ))}
-                </div>
-              )}
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-10 py-9 max-w-2xl">
+        {/* Icon + Title row */}
+        <div className="flex items-start gap-4 mb-6">
+          <div className="relative group">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl cursor-pointer"
+              style={{ background: color + '22' }}
+            >
+              {icon}
             </div>
-            <QuickCreateNote
-              projectId={project.id}
-              onCreated={(n) => setNotes((ns) => [n, ...ns])}
+            <input
+              value={icon}
+              onChange={e => handleIcon(e.target.value)}
+              maxLength={2}
+              className="absolute inset-0 opacity-0 cursor-pointer text-center bg-transparent outline-none"
+              title="Нажмите для смены иконки"
             />
           </div>
-        )}
-
-        {tab === 'tasks' && (
-          <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-auto p-3">
-              {tasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center mt-16">
-                  Нет задач в этом проекте
-                </p>
-              ) : (
-                <div className="flex flex-col gap-0.5">
-                  {tasks.map((t) => (
-                    <TaskRow key={t.id} task={t} onStatusChange={handleTaskStatusChange} />
-                  ))}
-                </div>
-              )}
-            </div>
-            <QuickCreateTask
-              projectId={project.id}
-              onCreated={(t) => setTasks((ts) => [t, ...ts])}
+          <div className="flex-1 pt-1">
+            <input
+              className="w-full text-[28px] font-medium leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground"
+              style={{ fontFamily: 'var(--font-display)' }}
+              placeholder="Название проекта"
+              value={name}
+              onChange={e => handleName(e.target.value)}
             />
           </div>
-        )}
+        </div>
+
+        {/* Description */}
+        <textarea
+          value={description}
+          onChange={e => handleDescription(e.target.value)}
+          placeholder="Описание проекта..."
+          rows={4}
+          className="w-full text-[15px] bg-transparent outline-none placeholder:text-muted-foreground resize-none mb-8 leading-relaxed text-foreground/80"
+        />
+
+        {/* Properties */}
+        <div className="space-y-4">
+          <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Свойства
+          </p>
+
+          {/* Status */}
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-muted-foreground w-20">Статус</span>
+            <button
+              onClick={handleStatusToggle}
+              className="text-[12px] px-2.5 py-1 rounded-full transition-colors"
+              style={{
+                background: status === 'active' ? '#22c55e22' : '#94a3b822',
+                color: status === 'active' ? '#16a34a' : '#64748b',
+              }}
+            >
+              {status === 'active' ? 'Активный' : 'В архиве'} — нажмите для смены
+            </button>
+          </div>
+
+          {/* Color */}
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-muted-foreground w-20">Цвет</span>
+            <div className="flex items-center gap-1.5">
+              {PROJECT_COLORS.map(c => (
+                <button
+                  key={c}
+                  onClick={() => handleColor(c)}
+                  className="w-5 h-5 rounded-full transition-transform hover:scale-110"
+                  style={{
+                    background: c,
+                    outline: c === color ? `2px solid ${c}` : 'none',
+                    outlineOffset: '2px',
+                    transform: c === color ? 'scale(1.2)' : 'scale(1)',
+                  }}
+                  title={c}
+                />
+              ))}
+              <input
+                type="color"
+                value={color}
+                onChange={e => handleColor(e.target.value)}
+                className="w-5 h-5 rounded border cursor-pointer opacity-60 hover:opacity-100"
+                title="Произвольный цвет"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

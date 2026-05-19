@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { tasksApi } from '@/api/tasks'
-import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types'
+import { projectsApi } from '@/api/projects'
+import { useContextStore } from '@/store/contextStore'
+import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest, Project } from '@/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { TaskDetailModal } from '@/components/TaskDetailModal'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -51,16 +54,8 @@ function IconPriority({ priority }: { priority: TaskPriority }) {
     <svg viewBox="0 0 12 12" className={cn('w-3 h-3 flex-shrink-0', color)}>
       {[0, 1, 2].map(i => (
         <rect key={i} x={i * 4} y={12 - (i < bars ? (i + 1) * 4 : 4)} width="3" height={i < bars ? (i + 1) * 4 : 4}
-          rx="0.5" fill={i < bars ? 'currentColor' : 'currentColor'} opacity={i < bars ? 1 : 0.25} />
+          rx="0.5" fill="currentColor" opacity={i < bars ? 1 : 0.25} />
       ))}
-    </svg>
-  )
-}
-
-function IconClose() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
-      <path d="M3 3l10 10M13 3L3 13" strokeLinecap="round" />
     </svg>
   )
 }
@@ -73,12 +68,6 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   in_progress: 'В работе',
   done: 'Выполнено',
   cancelled: 'Отменено',
-}
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  none: 'Без приоритета',
-  low: 'Низкий',
-  medium: 'Средний',
-  high: 'Высокий',
 }
 const NEXT_STATUS: Record<TaskStatus, TaskStatus> = {
   todo: 'in_progress',
@@ -99,16 +88,6 @@ function formatDue(iso: string | null) {
   if (days === 0) return { label: 'Сегодня', overdue: false }
   if (days === 1) return { label: 'Завтра', overdue: false }
   return { label: d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }), overdue: false }
-}
-
-function toLocalDateInput(iso: string | null): string {
-  if (!iso) return ''
-  return iso.slice(0, 10)
-}
-
-function fromDateInput(val: string): string | null {
-  if (!val) return null
-  return new Date(val + 'T00:00:00').toISOString()
 }
 
 // ─── Task Row ─────────────────────────────────────────────────────────────────
@@ -209,160 +188,52 @@ function InlineCreate({ onConfirm }: { onConfirm: (title: string) => void }) {
   )
 }
 
-// ─── Detail Panel ─────────────────────────────────────────────────────────────
-
-function DetailPanel({ task, onSave, onDelete, onClose }: {
-  task: Task
-  onSave: (id: string, data: UpdateTaskRequest) => void
-  onDelete: (id: string) => void
-  onClose: () => void
-}) {
-  const [title, setTitle] = useState(task.title)
-  const [description, setDescription] = useState(task.description)
-  const [status, setStatus] = useState<TaskStatus>(task.status)
-  const [priority, setPriority] = useState<TaskPriority>(task.priority)
-  const [dueDate, setDueDate] = useState(toLocalDateInput(task.due_date))
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    setTitle(task.title)
-    setDescription(task.description)
-    setStatus(task.status)
-    setPriority(task.priority)
-    setDueDate(toLocalDateInput(task.due_date))
-    setDeleteConfirm(false)
-  }, [task.id])
-
-  const scheduleSave = (patch: Partial<UpdateTaskRequest>) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      onSave(task.id, {
-        title,
-        description,
-        status,
-        priority,
-        due_date: fromDateInput(dueDate),
-        note_id: task.note_id,
-        ...patch,
-      })
-    }, 600)
-  }
-
-  const handleStatus = (v: TaskStatus) => {
-    setStatus(v)
-    scheduleSave({ status: v })
-  }
-  const handlePriority = (v: TaskPriority) => {
-    setPriority(v)
-    scheduleSave({ priority: v })
-  }
-  const handleDue = (v: string) => {
-    setDueDate(v)
-    scheduleSave({ due_date: fromDateInput(v) })
-  }
-  const handleTitle = (v: string) => {
-    setTitle(v)
-    scheduleSave({ title: v })
-  }
-  const handleDescription = (v: string) => {
-    setDescription(v)
-    scheduleSave({ description: v })
-  }
-
-  const row = 'flex items-center gap-3 py-1.5'
-  const label = 'font-mono text-[10px] uppercase tracking-widest text-muted-foreground w-24 flex-shrink-0'
-  const sel = 'bg-transparent outline-none text-sm text-foreground cursor-pointer'
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 h-10 border-b flex-shrink-0">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Задача</span>
-        <div className="flex items-center gap-2">
-          {deleteConfirm ? (
-            <>
-              <span className="font-mono text-[10px] text-muted-foreground">Удалить?</span>
-              <button onClick={() => setDeleteConfirm(false)} className="font-mono text-[10px] text-muted-foreground hover:text-foreground">Отмена</button>
-              <button onClick={() => onDelete(task.id)} className="font-mono text-[10px] text-destructive hover:underline">Удалить</button>
-            </>
-          ) : (
-            <button onClick={() => setDeleteConfirm(true)} className="font-mono text-[10px] text-muted-foreground hover:text-destructive transition-colors">Удалить</button>
-          )}
-          <Button variant="ghost" size="icon-sm" onClick={onClose} className="text-muted-foreground">
-            <IconClose />
-          </Button>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {/* Title */}
-        <input
-          value={title}
-          onChange={e => handleTitle(e.target.value)}
-          placeholder="Название задачи"
-          className="w-full text-[18px] font-medium bg-transparent outline-none placeholder:text-muted-foreground mb-3 leading-snug"
-        />
-
-        {/* Description */}
-        <textarea
-          value={description}
-          onChange={e => handleDescription(e.target.value)}
-          placeholder="Описание..."
-          rows={4}
-          className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground resize-none mb-5 text-foreground/80 leading-relaxed"
-        />
-
-        {/* Properties */}
-        <div className="space-y-0.5">
-          <div className={row}>
-            <span className={label}>Статус</span>
-            <select value={status} onChange={e => handleStatus(e.target.value as TaskStatus)} className={sel}>
-              {STATUS_ORDER.map(s => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-              ))}
-            </select>
-          </div>
-          <div className={row}>
-            <span className={label}>Приоритет</span>
-            <select value={priority} onChange={e => handlePriority(e.target.value as TaskPriority)} className={sel}>
-              {(['none', 'low', 'medium', 'high'] as TaskPriority[]).map(p => (
-                <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-              ))}
-            </select>
-          </div>
-          <div className={row}>
-            <span className={label}>Дедлайн</span>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={e => handleDue(e.target.value)}
-              className="bg-transparent outline-none text-sm text-foreground cursor-pointer"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function TasksPage() {
+  const { activeContextId } = useContextStore()
   const [tasks, setTasks] = useState<Task[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Task | null>(null)
 
-  useEffect(() => {
-    tasksApi.list()
+  const fetchTasks = useCallback((projectId: string | null) => {
+    setLoading(true)
+    const params: { context_id?: string; project_id?: string } = {}
+    if (activeContextId) params.context_id = activeContextId
+    if (projectId) params.project_id = projectId
+    tasksApi.list(params)
       .then(({ data }) => setTasks(data))
       .finally(() => setLoading(false))
-  }, [])
+  }, [activeContextId])
+
+  useEffect(() => {
+    setSelectedProjectId(null)
+    setSelected(null)
+    fetchTasks(null)
+    if (activeContextId) {
+      projectsApi.listByContext(activeContextId)
+        .then(({ data }) => setProjects(data))
+        .catch(() => setProjects([]))
+    } else {
+      setProjects([])
+    }
+  }, [activeContextId, fetchTasks])
+
+  const handleProjectChange = (projectId: string | null) => {
+    setSelectedProjectId(projectId)
+    setSelected(null)
+    fetchTasks(projectId)
+  }
 
   const handleCreate = async (title: string, status: TaskStatus = 'todo') => {
-    const { data } = await tasksApi.create({ title, status })
+    const { data } = await tasksApi.create({
+      title,
+      status,
+      context_id: activeContextId ?? undefined,
+      project_id: selectedProjectId ?? undefined,
+    })
     setTasks(prev => [data, ...prev])
     setSelected(data)
   }
@@ -396,6 +267,8 @@ export function TasksPage() {
     items: tasks.filter(t => t.status === s),
   })).filter(g => g.items.length > 0 || g.status === 'todo')
 
+  const activeProjects = projects.filter(p => p.status === 'active')
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full font-mono text-[11px] text-muted-foreground">
@@ -405,19 +278,31 @@ export function TasksPage() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Task list */}
-      <div className={cn('flex flex-col overflow-y-auto transition-all', selected ? 'w-[55%]' : 'flex-1')}>
+    <>
+      <div className="flex flex-col h-full overflow-hidden">
         {/* Page header */}
         <div className="flex items-center justify-between px-5 h-10 border-b flex-shrink-0">
-          <span className="text-sm font-medium">Задачи</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Задачи</span>
+            {activeProjects.length > 0 && (
+              <select
+                value={selectedProjectId ?? ''}
+                onChange={e => handleProjectChange(e.target.value || null)}
+                className="text-[11px] text-muted-foreground bg-background outline-none border border-border rounded-md px-2 py-0.5 cursor-pointer hover:border-primary transition-colors"
+              >
+                <option value="">Все проекты</option>
+                {activeProjects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
           <span className="font-mono text-[10px] text-muted-foreground">{tasks.length} задач</span>
         </div>
 
-        <div className="flex-1 px-3 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           {grouped.map(({ status, items }) => (
             <div key={status}>
-              {/* Group header */}
               <div className="flex items-center gap-2 px-3 mb-1">
                 <IconCircle status={status} />
                 <span className="font-mono text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
@@ -426,7 +311,6 @@ export function TasksPage() {
                 <span className="font-mono text-[10px] text-muted-foreground/60">{items.length}</span>
               </div>
 
-              {/* Task rows */}
               {items.map(task => (
                 <TaskRow
                   key={task.id}
@@ -437,7 +321,6 @@ export function TasksPage() {
                 />
               ))}
 
-              {/* Inline create (only for todo) */}
               {status === 'todo' && (
                 <InlineCreate onConfirm={title => handleCreate(title, 'todo')} />
               )}
@@ -453,17 +336,14 @@ export function TasksPage() {
         </div>
       </div>
 
-      {/* Detail panel */}
       {selected && (
-        <div className="border-l flex-1 overflow-hidden">
-          <DetailPanel
-            task={selected}
-            onSave={handleSave}
-            onDelete={handleDelete}
-            onClose={() => setSelected(null)}
-          />
-        </div>
+        <TaskDetailModal
+          task={selected}
+          onClose={() => setSelected(null)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+        />
       )}
-    </div>
+    </>
   )
 }

@@ -8,6 +8,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { NotesPage } from '@/pages/NotesPage'
 import { NoteEditorPage } from '@/pages/NoteEditorPage'
 import { TasksPage } from '@/pages/TasksPage'
+import { TaskEditorPage } from '@/pages/TaskEditorPage'
 import { ProjectsPage } from '@/pages/ProjectsPage'
 import { ProjectDetailPage } from '@/pages/ProjectDetailPage'
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
@@ -51,6 +52,7 @@ function App() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/notes/:id" element={<NoteEditorPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/tasks/:id" element={<TaskEditorPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
         </Route>

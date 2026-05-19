@@ -55,7 +55,7 @@ func (r *repository) FindByUserID(userID uuid.UUID, filter ListFilter) ([]Task, 
 		q = q.Where("priority = ?", filter.Priority)
 	}
 	if filter.ContextID != "" {
-		q = q.Where("context_id = ?", filter.ContextID)
+		q = q.Where("(context_id = ? OR context_id IS NULL)", filter.ContextID)
 	}
 	if filter.ProjectID != "" {
 		q = q.Where("project_id = ?", filter.ProjectID)

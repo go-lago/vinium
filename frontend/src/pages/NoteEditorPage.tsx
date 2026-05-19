@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { notesApi } from '@/api/notes'
+import { useContextStore } from '@/store/contextStore'
 import type { Note } from '@/types'
 import { Editor } from '@/editor/Editor'
 import { formatDate } from '@/lib/format'
@@ -38,6 +39,7 @@ function IconClock() {
 export function NoteEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { activeContextId } = useContextStore()
   const isDraft = id === 'new'
 
   const [note, setNote] = useState<Note | null>(null)
@@ -99,7 +101,11 @@ export function NoteEditorPage() {
       isCreatingRef.current = true
       setSaveStatus('saving')
       try {
-        const { data: newNote } = await notesApi.create({ title: newTitle, content: newContent })
+        const { data: newNote } = await notesApi.create({
+          title: newTitle,
+          content: newContent,
+          context_id: activeContextId ?? undefined,
+        })
         justCreatedRef.current = newNote
         navigate(`/notes/${newNote.id}`, { replace: true })
         markSaved()
