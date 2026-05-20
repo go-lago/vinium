@@ -259,8 +259,9 @@ export function TaskEditorPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Main editor area */}
         <div className="flex-1 overflow-y-auto px-10 py-9">
+          <div className="max-w-2xl mx-auto">
           <input
-            className="w-full text-[28px] font-medium leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground mb-3.5 max-w-2xl"
+            className="w-full text-[28px] font-medium leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground mb-3.5"
             style={{ fontFamily: 'var(--font-display)' }}
             placeholder="Название задачи"
             value={title}
@@ -276,18 +277,17 @@ export function TaskEditorPage() {
             </span>
           </div>
 
-          <div className="max-w-2xl">
-            {legacyDescription && (
-              <div className="text-[11px] text-muted-foreground bg-muted/40 rounded-md px-3 py-2.5 mb-4">
-                <span className="font-mono uppercase text-[10px] tracking-widest block mb-1">Прошлое описание</span>
-                <p className="whitespace-pre-wrap">{legacyDescription}</p>
-              </div>
-            )}
-            <Editor
-              key={task?.id ?? 'task-editor'}
-              initialContent={isLexicalContent(task?.description ?? '') ? task!.description : undefined}
-              onChange={handleDescription}
-            />
+          {legacyDescription && (
+            <div className="text-[11px] text-muted-foreground bg-muted/40 rounded-md px-3 py-2.5 mb-4">
+              <span className="font-mono uppercase text-[10px] tracking-widest block mb-1">Прошлое описание</span>
+              <p className="whitespace-pre-wrap">{legacyDescription}</p>
+            </div>
+          )}
+          <Editor
+            key={task?.id ?? 'task-editor'}
+            initialContent={isLexicalContent(task?.description ?? '') ? task!.description : undefined}
+            onChange={handleDescription}
+          />
           </div>
         </div>
 
