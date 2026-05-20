@@ -260,8 +260,9 @@ export function NoteEditorPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Main editor area */}
         <div className="flex-1 overflow-y-auto px-10 py-9">
+          <div className="max-w-2xl mx-auto">
           <input
-            className="w-full text-[28px] font-medium leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground mb-3.5 max-w-2xl"
+            className="w-full text-[28px] font-medium leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground mb-3.5"
             style={{ fontFamily: 'var(--font-display)' }}
             placeholder="Название"
             value={title}
@@ -286,12 +287,11 @@ export function NoteEditorPage() {
           </div>
 
           {/* Lexical editor */}
-          <div className="max-w-2xl">
-            <Editor
-              key={note?.id ?? 'draft'}
-              initialContent={note?.content ?? ''}
-              onChange={handleContentChange}
-            />
+          <Editor
+            key={note?.id ?? 'draft'}
+            initialContent={note?.content ?? ''}
+            onChange={handleContentChange}
+          />
           </div>
         </div>
 
