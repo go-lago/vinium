@@ -292,19 +292,19 @@ npm run dev
 
 ## Deploy Configuration (configured by /setup-deploy)
 - Platform: Railway (backend) + Vercel (frontend)
-- Production URL backend: https://vinium-backend.up.railway.app (update after first deploy)
-- Production URL frontend: https://vinium.vercel.app (update after first deploy)
+- Production URL backend: https://vinium-production.up.railway.app
+- Production URL frontend: https://vinium-six.vercel.app
 - Deploy workflow: auto-deploy on push to main
 - Deploy status command: HTTP health check at /health
 - Merge method: merge
 - Project type: web app (monorepo: Go API + React SPA)
-- Post-deploy health check: https://vinium-backend.up.railway.app/health
+- Post-deploy health check: https://vinium-production.up.railway.app/health
 
 ### Custom deploy hooks
 - Pre-merge: none
 - Deploy trigger: automatic on push to main (Railway watches backend/, Vercel watches frontend/)
 - Deploy status: poll /health on Railway backend
-- Health check: https://vinium-backend.up.railway.app/health
+- Health check: https://vinium-production.up.railway.app/health
 
 ### Railway environment variables (set in Railway dashboard)
 ```
@@ -314,10 +314,10 @@ JWT_ACCESS_TTL=15m
 JWT_REFRESH_TTL=168h
 OPENROUTER_API_KEY=sk-or-...
 OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
-FRONTEND_URL=https://vinium.vercel.app
+FRONTEND_URL=https://vinium-six.vercel.app
 GOOGLE_CLIENT_ID=<your client id>
 GOOGLE_CLIENT_SECRET=<your client secret>
-GOOGLE_REDIRECT_URL=https://vinium-backend.up.railway.app/api/v1/auth/google/callback
+GOOGLE_REDIRECT_URL=https://vinium-production.up.railway.app/api/v1/auth/google/callback
 TRUST_PROXY=true
 COOKIE_SECURE=true
 PORT=8080
@@ -337,7 +337,7 @@ VITE_API_BASE_URL=https://vinium-backend.up.railway.app
 ### Vercel setup (one-time, via dashboard)
 1. Import GitHub repo → set Root Directory = `frontend/`
 2. Framework: Vite (auto-detected)
-3. Set VITE_API_BASE_URL env var
+3. Set VITE_API_BASE_URL=https://vinium-production.up.railway.app
 
 ---
 
