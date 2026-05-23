@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore'
 
 // In production (Vercel), VITE_API_BASE_URL points to the Railway backend.
 // In dev, empty string falls back to the Vite proxy (/api → localhost:8080).
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
 const apiClient = axios.create({
   baseURL: `${API_BASE}/api/v1`,

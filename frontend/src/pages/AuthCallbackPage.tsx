@@ -16,7 +16,7 @@ export function AuthCallbackPage() {
       return
     }
 
-    const base = import.meta.env.VITE_API_BASE_URL ?? ''
+    const base = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
     axios
       .get<{ access_token: string }>(`${base}/api/v1/auth/google/exchange?code=${code}`)
       .then(({ data }) => {
