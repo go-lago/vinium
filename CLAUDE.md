@@ -290,6 +290,57 @@ npm run dev
 
 Отличие Vinium: hosted AI-слой поверх персонального контекста + открытый API с первого дня.
 
+## Deploy Configuration (configured by /setup-deploy)
+- Platform: Railway (backend) + Vercel (frontend)
+- Production URL backend: https://vinium-backend.up.railway.app (update after first deploy)
+- Production URL frontend: https://vinium.vercel.app (update after first deploy)
+- Deploy workflow: auto-deploy on push to main
+- Deploy status command: HTTP health check at /health
+- Merge method: merge
+- Project type: web app (monorepo: Go API + React SPA)
+- Post-deploy health check: https://vinium-backend.up.railway.app/health
+
+### Custom deploy hooks
+- Pre-merge: none
+- Deploy trigger: automatic on push to main (Railway watches backend/, Vercel watches frontend/)
+- Deploy status: poll /health on Railway backend
+- Health check: https://vinium-backend.up.railway.app/health
+
+### Railway environment variables (set in Railway dashboard)
+```
+DATABASE_URL=<Railway PostgreSQL plugin URL>
+JWT_SECRET=<random 32+ chars>
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL=168h
+OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
+FRONTEND_URL=https://vinium.vercel.app
+GOOGLE_CLIENT_ID=<your client id>
+GOOGLE_CLIENT_SECRET=<your client secret>
+GOOGLE_REDIRECT_URL=https://vinium-backend.up.railway.app/api/v1/auth/google/callback
+TRUST_PROXY=true
+COOKIE_SECURE=true
+PORT=8080
+```
+
+### Vercel environment variables (set in Vercel dashboard)
+```
+VITE_API_BASE_URL=https://vinium-backend.up.railway.app
+```
+
+### Railway service setup (one-time, via dashboard)
+1. Create new project → Deploy from GitHub repo
+2. Add service → select this repo → set Root Directory = `backend/`
+3. Add PostgreSQL plugin → Railway auto-sets DATABASE_URL
+4. Set all env vars above
+
+### Vercel setup (one-time, via dashboard)
+1. Import GitHub repo → set Root Directory = `frontend/`
+2. Framework: Vite (auto-detected)
+3. Set VITE_API_BASE_URL env var
+
+---
+
 ## Skill routing
 
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.

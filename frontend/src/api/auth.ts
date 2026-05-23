@@ -15,6 +15,7 @@ export const authApi = {
     apiClient.post<AuthTokens>('/auth/refresh'),
 
   googleLogin: () => {
-    window.location.href = '/api/v1/auth/google'
+    const base = import.meta.env.VITE_API_BASE_URL ?? ''
+    window.location.href = `${base}/api/v1/auth/google`
   },
 }

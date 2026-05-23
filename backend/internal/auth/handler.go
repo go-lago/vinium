@@ -187,13 +187,18 @@ func (h *Handler) ExchangeGoogleCode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) setRefreshCookie(w http.ResponseWriter, token string) {
+	sameSite := http.SameSiteLaxMode
+	if h.cookieSecure {
+		// Cross-domain (Vercel frontend → Railway backend) requires SameSite=None;Secure
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     refreshTokenCookie,
 		Value:    token,
 		MaxAge:   int(h.refreshTTL.Seconds()),
 		HttpOnly: true,
 		Secure:   h.cookieSecure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 		Path:     "/",
 	})
 }

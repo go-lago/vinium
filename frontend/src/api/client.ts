@@ -1,8 +1,12 @@
 import axios from 'axios'
 import { useAuthStore } from '@/store/authStore'
 
+// In production (Vercel), VITE_API_BASE_URL points to the Railway backend.
+// In dev, empty string falls back to the Vite proxy (/api → localhost:8080).
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+
 const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: `${API_BASE}/api/v1`,
   withCredentials: true, // sends httpOnly cookie with refresh token
 })
 
@@ -58,7 +62,7 @@ apiClient.interceptors.response.use(
 
     try {
       const { data } = await axios.post(
-        '/api/v1/auth/refresh',
+        `${API_BASE}/api/v1/auth/refresh`,
         {},
         { withCredentials: true },
       )
