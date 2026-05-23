@@ -16,8 +16,9 @@ export function AuthCallbackPage() {
       return
     }
 
+    const base = import.meta.env.VITE_API_BASE_URL ?? ''
     axios
-      .get<{ access_token: string }>(`/api/v1/auth/google/exchange?code=${code}`)
+      .get<{ access_token: string }>(`${base}/api/v1/auth/google/exchange?code=${code}`)
       .then(({ data }) => {
         useAuthStore.setState({ accessToken: data.access_token })
         return userApi.getMe().then((res) => {
