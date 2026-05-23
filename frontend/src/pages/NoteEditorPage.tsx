@@ -59,7 +59,7 @@ export function NoteEditorPage() {
     if (isDraft) return
 
     if (justCreatedRef.current?.id === id) {
-      const n = justCreatedRef.current
+      const n = justCreatedRef.current!
       justCreatedRef.current = null
       setNote(n)
       setTitle(n.title)

@@ -83,7 +83,7 @@ export function FloatingToolbarPlugin() {
   const [aiResult, setAiResult] = useState('')
   const [aiError, setAiError] = useState('')
   const [lastAiAction, setLastAiAction] = useState('')
-  const [selectedText, setSelectedText] = useState('')
+  const [, setSelectedText] = useState('')
   const [aiCopied, setAiCopied] = useState(false)
 
   const resetAI = () => { setAiStatus('idle'); setAiResult(''); setAiError('') }
