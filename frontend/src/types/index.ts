@@ -48,7 +48,7 @@ export interface Note {
 
 export type NoteSummary = Omit<Note, 'content'>
 
-export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled'
+export type TaskStatus = 'inbox' | 'todo' | 'in_progress' | 'done' | 'cancelled'
 export type TaskPriority = 'none' | 'low' | 'medium' | 'high'
 
 export interface Task {
@@ -84,6 +84,8 @@ export interface UpdateTaskRequest {
   priority: TaskPriority
   due_date: string | null
   note_id: string | null
+  project_id?: string | null
+  context_id?: string | null
 }
 
 export interface Context {

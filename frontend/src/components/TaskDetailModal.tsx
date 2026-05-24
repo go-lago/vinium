@@ -4,8 +4,9 @@ import { Editor } from '@/editor/Editor'
 import { Button } from '@/components/ui/button'
 import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types'
 
-const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'done', 'cancelled']
+const STATUS_ORDER: TaskStatus[] = ['inbox', 'todo', 'in_progress', 'done', 'cancelled']
 const STATUS_LABELS: Record<TaskStatus, string> = {
+  inbox: 'Входящие',
   todo: 'К выполнению',
   in_progress: 'В работе',
   done: 'Выполнено',
@@ -110,6 +111,8 @@ export function TaskDetailModal({ task, onClose, onSave, onDelete }: Props) {
         priority: priorityRef.current,
         due_date: fromDateInput(dueDateRef.current),
         note_id: task.note_id,
+        project_id: task.project_id,
+        context_id: task.context_id,
       })
     }, 600)
   }

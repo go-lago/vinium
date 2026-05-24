@@ -42,7 +42,7 @@ type UpdateInput struct {
 func (s *Service) Create(in CreateInput) (*Task, error) {
 	status := in.Status
 	if status == "" {
-		status = StatusTodo
+		status = StatusInbox
 	}
 	priority := in.Priority
 	if priority == "" {
