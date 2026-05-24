@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useContextStore } from '@/store/contextStore'
 import { projectsApi } from '@/api/projects'
 import type { Project } from '@/types'
@@ -144,6 +144,7 @@ function ProjectRow({ project, onArchiveToggle }: { project: Project; onArchiveT
 
 export function ProjectsPage() {
   const { contexts, activeContextId } = useContextStore()
+  const location = useLocation()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
@@ -159,6 +160,13 @@ export function ProjectsPage() {
       .finally(() => setLoading(false))
   }, [activeContextId])
 
+  useEffect(() => {
+    if (location.state?.autoCreate && activeContextId) {
+      setShowCreate(true)
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state, activeContextId])
+
   const activeCtx = contexts.find((c) => c.id === activeContextId)
 
   const handleArchiveToggle = (id: string) => {
@@ -173,16 +181,20 @@ export function ProjectsPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center gap-3 px-5 h-10 border-b shrink-0">
-        <div className="flex items-center gap-2 flex-1">
-          <span className="text-sm font-medium">Проекты</span>
-          {activeCtx && (
-            <span className="text-xs text-muted-foreground">
-              {activeCtx.icon} {activeCtx.name}
-            </span>
-          )}
+      <div className="flex flex-col border-b shrink-0">
+        <div className="flex items-center gap-3 px-4 md:px-5 h-12">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-[15px] font-semibold">Проекты</span>
+            {activeCtx && (
+              <span className="text-xs text-muted-foreground truncate">{activeCtx.icon} {activeCtx.name}</span>
+            )}
+          </div>
+          <Button size="sm" onClick={() => setShowCreate(true)} disabled={!activeContextId}>
+            <IconPlus />
+            <span className="hidden sm:inline">Новый</span>
+          </Button>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 px-4 md:px-5 pb-2">
           {(['active', 'archived', 'all'] as const).map((f) => (
             <Button
               key={f}
@@ -194,14 +206,6 @@ export function ProjectsPage() {
             </Button>
           ))}
         </div>
-        <Button
-          size="sm"
-          onClick={() => setShowCreate(true)}
-          disabled={!activeContextId}
-        >
-          <IconPlus />
-          Новый
-        </Button>
       </div>
 
       <div className="flex-1 overflow-auto">

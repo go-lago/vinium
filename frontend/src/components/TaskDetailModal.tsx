@@ -157,10 +157,12 @@ export function TaskDetailModal({ task, onClose, onSave, onDelete }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full max-w-xl max-h-[85vh] flex flex-col bg-background rounded-xl border shadow-xl overflow-hidden">
+      <div className="w-full md:max-w-xl max-h-[90vh] md:max-h-[85vh] flex flex-col bg-background rounded-t-2xl md:rounded-xl border shadow-xl overflow-hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-10 border-b flex-shrink-0">
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Задача</span>

@@ -175,21 +175,21 @@ export function NoteEditorPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Editor header / breadcrumb */}
-      <div className="flex items-center gap-2 px-5 h-10 border-b bg-background flex-shrink-0">
-        <nav className="flex items-center gap-1 text-[12px] text-muted-foreground">
+      <div className="flex items-center gap-2 px-3 md:px-5 h-10 border-b bg-background flex-shrink-0 min-w-0">
+        <nav className="flex items-center gap-1 text-[12px] text-muted-foreground min-w-0">
           <button
             onClick={() => navigate('/notes')}
-            className="hover:text-foreground transition-colors"
+            className="hover:text-foreground transition-colors flex-shrink-0"
           >
             Заметки
           </button>
           <IconChevron />
-          <span className="text-foreground truncate max-w-[300px]">
+          <span className="text-foreground truncate max-w-[140px] md:max-w-[300px]">
             {title || 'Без названия'}
           </span>
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-1.5 md:gap-3 flex-shrink-0">
           {saveStatus === 'error' ? (
             <Button
               variant="link"
@@ -259,7 +259,7 @@ export function NoteEditorPage() {
       {/* Body: main editor + right sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Main editor area */}
-        <div className="flex-1 overflow-y-auto px-10 py-9">
+        <div className="flex-1 overflow-y-auto px-4 md:px-10 py-5 md:py-9">
           <div className="max-w-2xl mx-auto">
           <input
             className="w-full text-[28px] font-medium leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground mb-3.5"
@@ -295,8 +295,8 @@ export function NoteEditorPage() {
           </div>
         </div>
 
-        {/* Right sidebar */}
-        <div className="w-[216px] flex-shrink-0 border-l overflow-y-auto p-4 bg-background">
+        {/* Right sidebar — hidden on mobile */}
+        <div className="hidden md:flex flex-col w-[216px] flex-shrink-0 border-l overflow-y-auto p-4 bg-background">
           {/* Metadata panel */}
           <div className="mb-5">
             <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-2">

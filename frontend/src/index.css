@@ -4,6 +4,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Prevent iOS Safari from zooming on input focus (requires font-size ≥ 16px) */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 @theme inline {
     --font-sans:    'Inter', system-ui, sans-serif;
     --font-display: 'Inter Tight', system-ui, sans-serif;
