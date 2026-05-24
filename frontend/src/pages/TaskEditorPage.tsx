@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button'
 
 const AUTOSAVE_DELAY = 1500
 
-const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'done', 'cancelled']
+const STATUS_ORDER: TaskStatus[] = ['inbox', 'todo', 'in_progress', 'done', 'cancelled']
 const STATUS_LABELS: Record<TaskStatus, string> = {
+  inbox: 'Входящие',
   todo: 'К выполнению',
   in_progress: 'В работе',
   done: 'Выполнено',
