@@ -83,6 +83,7 @@ interface EditorProps {
 
 export function Editor({ initialContent, onChange, editable = true }: EditorProps) {
   const [editorContainer, setEditorContainer] = useState<HTMLDivElement | null>(null)
+  const isMobile = window.innerWidth < 768
 
   const initialConfig = {
     namespace: 'ViniumEditor',
@@ -102,7 +103,7 @@ export function Editor({ initialContent, onChange, editable = true }: EditorProp
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <div className="flex flex-col">
-        {editable && <ToolbarPlugin />}
+        {editable && !isMobile && <ToolbarPlugin />}
         <div ref={setEditorContainer} className="relative min-h-[200px] pl-7">
           <RichTextPlugin
             contentEditable={
@@ -124,7 +125,7 @@ export function Editor({ initialContent, onChange, editable = true }: EditorProp
         {editable && <AutoFocusPlugin />}
         {editable && <SlashCommandPlugin />}
         {editable && <FloatingToolbarPlugin />}
-        {editable && editorContainer && (
+        {editable && editorContainer && !isMobile && (
           <DragDropPlugin anchorElem={editorContainer} />
         )}
         <OnChangePlugin onChange={handleChange} ignoreSelectionChange />

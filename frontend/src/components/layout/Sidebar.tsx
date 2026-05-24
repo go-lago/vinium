@@ -275,7 +275,8 @@ export function Sidebar() {
 
   return (
     <aside className={cn(
-      'flex-shrink-0 border-r bg-background flex flex-col py-2 z-10 transition-[width] duration-200',
+      'flex-shrink-0 border-r bg-background flex-col py-2 z-10 transition-[width] duration-200',
+      'hidden md:flex',
       expanded ? 'w-[200px]' : 'w-12',
     )}>
       {/* Logo */}

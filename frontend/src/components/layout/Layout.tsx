@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
+import { MobileHeader } from './MobileHeader'
+import { MobileNav } from './MobileNav'
 import { CommandPalette } from '@/components/CommandPalette'
 
 export function Layout() {
@@ -21,13 +23,15 @@ export function Layout() {
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <MobileHeader onOpenPalette={() => setPaletteOpen(true)} />
+        <main className="flex-1 flex flex-col overflow-hidden min-w-0 pb-14 md:pb-0">
           <Outlet />
         </main>
-        <div className="h-7 border-t flex items-center px-5 gap-4 font-mono text-[10px] text-muted-foreground flex-shrink-0">
+        <div className="hidden md:flex h-7 border-t items-center px-5 gap-4 font-mono text-[10px] text-muted-foreground flex-shrink-0">
           <span>Vinium</span>
         </div>
       </div>
+      <MobileNav />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   )
