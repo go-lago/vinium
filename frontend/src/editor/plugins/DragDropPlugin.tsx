@@ -37,6 +37,7 @@ export function DragDropPlugin({ anchorElem }: { anchorElem: HTMLElement }) {
           style={{
             position: 'absolute',
             left: 0,
+            right: 0,
             top: 0,
             height: '2px',
             background: 'hsl(var(--primary))',

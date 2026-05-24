@@ -5,15 +5,27 @@ import {
   $getSelection,
   $isRangeSelection,
   FORMAT_TEXT_COMMAND,
+  $createParagraphNode,
 } from 'lexical'
-import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
+import {
+  $isHeadingNode,
+  $createHeadingNode,
+  $isQuoteNode,
+  $createQuoteNode,
+} from '@lexical/rich-text'
+import type { HeadingTagType } from '@lexical/rich-text'
+import { $isListNode } from '@lexical/list'
+import { $isCodeNode } from '@lexical/code'
 import { $setBlocksType } from '@lexical/selection'
 import { TOGGLE_LINK_COMMAND, $isLinkNode } from '@lexical/link'
+import type { LinkNode } from '@lexical/link'
 import { cn } from '@/lib/utils'
 import { aiApi } from '@/api/ai'
 import axios from 'axios'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type BlockType = 'paragraph' | 'h1' | 'h2' | 'h3' | 'quote' | 'code' | 'ul' | 'ol'
 
 type TextFormatState = {
   isBold: boolean
@@ -27,17 +39,31 @@ type TextFormatState = {
 type View = 'main' | 'link' | 'ai'
 type AIStatus = 'idle' | 'loading' | 'success' | 'error'
 
+const AI_ACTIONS = [
+  { key: 'rephrase',  label: 'Перефраз'  },
+  { key: 'expand',    label: 'Расширить' },
+  { key: 'summarize', label: 'Сжать'     },
+] as const
+
+const SEP = <div className="w-px h-4 bg-border mx-0.5 flex-shrink-0" />
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function readFormatState(editor: ReturnType<typeof useLexicalComposerContext>[0]): TextFormatState {
+function readEditorState(editor: ReturnType<typeof useLexicalComposerContext>[0]): {
+  fmt: TextFormatState
+  blockType: BlockType
+} {
   return editor.getEditorState().read(() => {
     const sel = $getSelection()
-    if (!$isRangeSelection(sel)) {
-      return { isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, isCode: false, isLink: false }
+    const emptyFmt: TextFormatState = {
+      isBold: false, isItalic: false, isUnderline: false,
+      isStrikethrough: false, isCode: false, isLink: false,
     }
+    if (!$isRangeSelection(sel)) return { fmt: emptyFmt, blockType: 'paragraph' }
+
     const node = sel.anchor.getNode()
     const parent = node.getParent()
-    return {
+    const fmt: TextFormatState = {
       isBold: sel.hasFormat('bold'),
       isItalic: sel.hasFormat('italic'),
       isUnderline: sel.hasFormat('underline'),
@@ -45,6 +71,20 @@ function readFormatState(editor: ReturnType<typeof useLexicalComposerContext>[0]
       isCode: sel.hasFormat('code'),
       isLink: $isLinkNode(parent) || $isLinkNode(node),
     }
+
+    const element = node.getKey() === 'root' ? node : node.getTopLevelElementOrThrow()
+    let blockType: BlockType = 'paragraph'
+    if ($isHeadingNode(element)) {
+      blockType = element.getTag() as BlockType
+    } else if ($isListNode(element)) {
+      blockType = element.getListType() === 'bullet' ? 'ul' : 'ol'
+    } else if ($isQuoteNode(element)) {
+      blockType = 'quote'
+    } else if ($isCodeNode(element)) {
+      blockType = 'code'
+    }
+
+    return { fmt, blockType }
   })
 }
 
@@ -54,14 +94,6 @@ function getSelectedText(editor: ReturnType<typeof useLexicalComposerContext>[0]
     return $isRangeSelection(sel) ? sel.getTextContent() : ''
   })
 }
-
-const SEP = <div className="w-px h-4 bg-border mx-0.5 flex-shrink-0" />
-
-const AI_ACTIONS = [
-  { key: 'rephrase', label: 'Перефразировать' },
-  { key: 'expand',   label: 'Расширить' },
-  { key: 'summarize', label: 'Сжать' },
-] as const
 
 // ─── Main plugin ─────────────────────────────────────────────────────────────
 
@@ -73,17 +105,17 @@ export function FloatingToolbarPlugin() {
 
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const [fmt, setFmt] = useState<TextFormatState>({
-    isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, isCode: false, isLink: false,
+    isBold: false, isItalic: false, isUnderline: false,
+    isStrikethrough: false, isCode: false, isLink: false,
   })
+  const [blockType, setBlockType] = useState<BlockType>('paragraph')
   const [view, setView] = useState<View>('main')
   const [linkUrl, setLinkUrl] = useState('')
 
-  // AI state
   const [aiStatus, setAiStatus] = useState<AIStatus>('idle')
   const [aiResult, setAiResult] = useState('')
   const [aiError, setAiError] = useState('')
   const [lastAiAction, setLastAiAction] = useState('')
-  const [, setSelectedText] = useState('')
   const [aiCopied, setAiCopied] = useState(false)
 
   const resetAI = () => { setAiStatus('idle'); setAiResult(''); setAiError('') }
@@ -109,7 +141,9 @@ export function FloatingToolbarPlugin() {
     const rect = range.getBoundingClientRect()
     if (rect.width === 0 && rect.height === 0) { setPosition(null); return }
     setPosition({ top: rect.top - 44, left: rect.left + rect.width / 2 })
-    setFmt(readFormatState(editor))
+    const { fmt: newFmt, blockType: newBlockType } = readEditorState(editor)
+    setFmt(newFmt)
+    setBlockType(newBlockType)
   }, [editor])
 
   useEffect(() => {
@@ -140,10 +174,34 @@ export function FloatingToolbarPlugin() {
       onMouseDown={(e) => { e.preventDefault(); onClick() }}
       className={cn(
         'px-2 py-0.5 rounded text-xs transition-colors',
-        active ? 'bg-accent text-accent-foreground font-semibold' : 'hover:bg-accent/60 text-muted-foreground hover:text-foreground',
+        active
+          ? 'bg-accent text-accent-foreground font-semibold'
+          : 'hover:bg-accent/60 text-muted-foreground hover:text-foreground',
       )}
     >{children}</button>
   )
+
+  // ── Block format handlers ────────────────────────────────────────────────────
+
+  const setHeading = (tag: HeadingTagType) => {
+    editor.update(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) return
+      $setBlocksType(selection, () =>
+        blockType === tag ? $createParagraphNode() : $createHeadingNode(tag),
+      )
+    })
+  }
+
+  const setQuote = () => {
+    editor.update(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) return
+      $setBlocksType(selection, () =>
+        blockType === 'quote' ? $createParagraphNode() : $createQuoteNode(),
+      )
+    })
+  }
 
   // ── Link handlers ────────────────────────────────────────────────────────────
 
@@ -153,8 +211,8 @@ export function FloatingToolbarPlugin() {
       if (!$isRangeSelection(sel)) return ''
       const node = sel.anchor.getNode()
       const parent = node.getParent()
-      if ($isLinkNode(parent)) return parent.getURL()
-      if ($isLinkNode(node)) return (node as ReturnType<typeof $isLinkNode> extends true ? never : typeof node & { getURL(): string }).getURL?.() ?? ''
+      if ($isLinkNode(parent)) return (parent as LinkNode).getURL()
+      if ($isLinkNode(node)) return (node as LinkNode).getURL()
       return ''
     })
     setLinkUrl(existing)
@@ -180,7 +238,6 @@ export function FloatingToolbarPlugin() {
     const text = getSelectedText(editor)
     if (!text.trim()) return
 
-    setSelectedText(text)
     setLastAiAction(action)
     setAiStatus('loading')
     setAiResult('')
@@ -224,8 +281,6 @@ export function FloatingToolbarPlugin() {
   }
 
   if (!position) return null
-
-  // ── Toolbar width adapts to view ──────────────────────────────────────────
 
   const baseStyle: React.CSSProperties = {
     position: 'fixed',
@@ -329,20 +384,6 @@ export function FloatingToolbarPlugin() {
 
   // ── Main toolbar ──────────────────────────────────────────────────────────
 
-  const setHeading = (tag: 'h1' | 'h2' | 'h3') => {
-    editor.update(() => {
-      const selection = $getSelection()
-      if ($isRangeSelection(selection)) $setBlocksType(selection, () => $createHeadingNode(tag))
-    })
-  }
-
-  const setQuote = () => {
-    editor.update(() => {
-      const selection = $getSelection()
-      if ($isRangeSelection(selection)) $setBlocksType(selection, () => $createQuoteNode())
-    })
-  }
-
   return createPortal(
     <div ref={toolbarRef} style={baseStyle}
       className="flex items-center gap-0.5 rounded-lg border border-border bg-popover shadow-lg px-1.5 py-1"
@@ -369,14 +410,21 @@ export function FloatingToolbarPlugin() {
         </svg>
       </Btn>
       {SEP}
-      <Btn active={false} onClick={() => setHeading('h1')} title="Заголовок 1">H1</Btn>
-      <Btn active={false} onClick={() => setHeading('h2')} title="Заголовок 2">H2</Btn>
-      <Btn active={false} onClick={() => setHeading('h3')} title="Заголовок 3">H3</Btn>
-      <Btn active={false} onClick={setQuote} title="Цитата">"</Btn>
+      <Btn active={blockType === 'h1'} onClick={() => setHeading('h1')} title="Заголовок 1">H1</Btn>
+      <Btn active={blockType === 'h2'} onClick={() => setHeading('h2')} title="Заголовок 2">H2</Btn>
+      <Btn active={blockType === 'h3'} onClick={() => setHeading('h3')} title="Заголовок 3">H3</Btn>
+      <Btn active={blockType === 'quote'} onClick={setQuote} title="Цитата">
+        <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3">
+          <rect x="1.5" y="2" width="2" height="9" rx="1" fill="currentColor"/>
+          <line x1="5" y1="4.5" x2="12" y2="4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="5" y1="7" x2="11" y2="7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <line x1="5" y1="9.5" x2="12" y2="9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+        </svg>
+      </Btn>
       {SEP}
       {AI_ACTIONS.map(({ key, label }) => (
         <Btn key={key} active={false} onClick={() => runAI(key)} title={label}>
-          <span className="font-mono text-[10px]">{label === 'Перефразировать' ? '↺' : label === 'Расширить' ? '↕' : '⇥'}</span>
+          <span className="font-mono text-[10px]">{label}</span>
         </Btn>
       ))}
     </div>,
